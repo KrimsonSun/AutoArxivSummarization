@@ -1,43 +1,7 @@
-import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs';
+import postgres from 'postgres';
 
-const DB_PATH = process.env.DATABASE_URL || 'data/database.sqlite';
-
-// Ensure the data directory exists
-const dbDir = path.dirname(path.resolve(process.cwd(), DB_PATH));
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
-}
-
-const db = new Database(DB_PATH);
-
-// Initialize tables
-db.exec(`
-  CREATE TABLE IF NOT EXISTS papers (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    arxiv_id TEXT UNIQUE,
-    title TEXT,
-    abstract TEXT,
-    summary_zh TEXT,
-    summary_en TEXT,
-    authors TEXT,
-    url TEXT,
-    published_date TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS subscribers (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    email TEXT UNIQUE,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-`);
-
-export default db;
-
+// --- Types ---
 export interface Paper {
-  id?: number;
   arxiv_id: string;
   title: string;
   abstract: string;
@@ -46,53 +10,149 @@ export interface Paper {
   authors: string;
   url: string;
   published_date: string;
-  created_at?: string;
 }
 
 export interface Subscriber {
-  id?: number;
   email: string;
-  created_at?: string;
+  language: 'zh' | 'en';
 }
 
+// --- Connection Logic (Lazy) ---
+let _sql: any = null;
+let _schemaInitialized = false;
+
+function getSql() {
+  if (!_sql) {
+    if (!process.env.DATABASE_URL) {
+      // In build environment, DATABASE_URL might be missing. 
+      // We return a mock or throw a descriptive error that we catch elsewhere.
+      throw new Error('DATABASE_URL is missing. Please check your environment variables.');
+    }
+    _sql = postgres(process.env.DATABASE_URL, {
+      ssl: 'require',
+      connect_timeout: 10,
+    });
+  }
+  return _sql;
+}
+
+// Initialize database schema (PostgreSQL version)
+async function initSchema() {
+  if (_schemaInitialized) return;
+
+  try {
+    const sql = getSql();
+    await sql`
+      CREATE TABLE IF NOT EXISTS papers (
+        id SERIAL PRIMARY KEY,
+        arxiv_id TEXT UNIQUE,
+        title TEXT,
+        abstract TEXT,
+        summary_zh TEXT,
+        summary_en TEXT,
+        authors TEXT,
+        url TEXT,
+        published_date TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS subscribers (
+        id SERIAL PRIMARY KEY,
+        email TEXT UNIQUE,
+        language TEXT DEFAULT 'zh',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+    // Add language column if it doesn't exist (for existing tables)
+    await sql`ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS language TEXT DEFAULT 'zh'`;
+    _schemaInitialized = true;
+    console.log('Database schema initialized.');
+  } catch (err) {
+    // If it's a connection error during build, we log and continue
+    console.error('Database initialization failed:', err);
+    throw err;
+  }
+}
+
+// Helper to ensure connection and schema before any operation
+async function ensureDb() {
+  try {
+    await initSchema();
+  } catch (err) {
+    // Graceful degradation or error propagation
+    console.warn('Database not available at this moment.');
+    throw err;
+  }
+}
+
+// --- Database Operations ---
 export const dbOps = {
-  savePaper: (paper: Paper) => {
-    const stmt = db.prepare(`
-      INSERT OR REPLACE INTO papers (arxiv_id, title, abstract, summary_zh, summary_en, authors, url, published_date)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    return stmt.run(
-      paper.arxiv_id,
-      paper.title,
-      paper.abstract,
-      paper.summary_zh,
-      paper.summary_en,
-      paper.authors,
-      paper.url,
-      paper.published_date
-    );
+  savePaper: async (paper: Paper) => {
+    await ensureDb();
+    const sql = getSql();
+    return await sql`
+      INSERT INTO papers (arxiv_id, title, abstract, summary_zh, summary_en, authors, url, published_date)
+      VALUES (${paper.arxiv_id}, ${paper.title}, ${paper.abstract}, ${paper.summary_zh}, ${paper.summary_en}, ${paper.authors}, ${paper.url}, ${paper.published_date})
+      ON CONFLICT (arxiv_id) DO UPDATE SET
+        summary_zh = EXCLUDED.summary_zh,
+        summary_en = EXCLUDED.summary_en,
+        created_at = CURRENT_TIMESTAMP
+    `;
   },
 
-  getLatestPaper: (): Paper | undefined => {
-    return db.prepare('SELECT * FROM papers ORDER BY created_at DESC LIMIT 1').get() as Paper | undefined;
+  getLatestPaper: async (): Promise<Paper | null> => {
+    try {
+      await ensureDb();
+      const sql = getSql();
+      const result = await sql`
+        SELECT * FROM papers ORDER BY created_at DESC LIMIT 1
+      `;
+      return (result[0] as unknown as Paper) || null;
+    } catch (err) {
+      console.error('Error fetching latest paper:', err);
+      return null;
+    }
   },
 
-  addSubscriber: (email: string) => {
-    const stmt = db.prepare('INSERT OR IGNORE INTO subscribers (email) VALUES (?)');
-    return stmt.run(email);
+  getAllSubscribers: async (): Promise<Subscriber[]> => {
+    await ensureDb();
+    const sql = getSql();
+    const result = await sql`
+      SELECT email, COALESCE(language, 'zh') as language FROM subscribers
+    `;
+    return result as unknown as Subscriber[];
   },
 
-  isSubscriberExists: (email: string): boolean => {
-    const stmt = db.prepare('SELECT 1 FROM subscribers WHERE email = ?');
-    return !!stmt.get(email);
+  addSubscriber: async (email: string, language: 'zh' | 'en' = 'zh') => {
+    await ensureDb();
+    const sql = getSql();
+    return await sql`
+      INSERT INTO subscribers (email, language) VALUES (${email}, ${language})
+      ON CONFLICT (email) DO UPDATE SET language = EXCLUDED.language
+    `;
   },
 
-  removeSubscriber: (email: string) => {
-    const stmt = db.prepare('DELETE FROM subscribers WHERE email = ?');
-    return stmt.run(email);
+  removeSubscriber: async (email: string) => {
+    await ensureDb();
+    const sql = getSql();
+    return await sql`
+      DELETE FROM subscribers WHERE email = ${email}
+    `;
   },
 
-  getAllSubscribers: (): Subscriber[] => {
-    return db.prepare('SELECT * FROM subscribers').all() as Subscriber[];
+  isSubscriberExists: async (email: string): Promise<boolean> => {
+    try {
+      await ensureDb();
+      const sql = getSql();
+      const result = await sql`
+        SELECT 1 FROM subscribers WHERE email = ${email}
+      `;
+      return result.length > 0;
+    } catch (err) {
+      console.error('Error checking subscriber existence:', err);
+      return false;
+    }
   }
 };

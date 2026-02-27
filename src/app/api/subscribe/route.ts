@@ -3,17 +3,21 @@ import { dbOps } from '@/lib/db';
 
 export async function POST(request: Request) {
     try {
-        const { email } = await request.json();
+        const { email, language } = await request.json();
 
         if (!email || !email.includes('@')) {
             return NextResponse.json({ error: 'Invalid email address' }, { status: 400 });
         }
 
-        if (dbOps.isSubscriberExists(email)) {
+        const lang: 'zh' | 'en' = language === 'en' ? 'en' : 'zh';
+
+        if (await dbOps.isSubscriberExists(email)) {
+            // Update language preference even if already subscribed
+            await dbOps.addSubscriber(email, lang);
             return NextResponse.json({ error: 'ALREADY_SUBSCRIBED' }, { status: 400 });
         }
 
-        dbOps.addSubscriber(email);
+        await dbOps.addSubscriber(email, lang);
 
         return NextResponse.json({ success: true });
     } catch (error) {

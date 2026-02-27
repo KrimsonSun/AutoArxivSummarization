@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { ExternalLink, BookOpen, User, Calendar, Languages } from 'lucide-react';
+import { useLang } from '@/context/LangContext';
+import { ExternalLink, BookOpen, User, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 
@@ -17,39 +17,12 @@ interface PaperProps {
 }
 
 export default function PaperDisplay({ paper }: PaperProps) {
-    const [lang, setLang] = useState<'zh' | 'en'>('zh');
-
-    const t = {
-        zh: {
-            todaySelection: '今日精选',
-            aiSummary: 'AI 深度解析',
-            readOriginal: '阅读原文',
-            authors: '作者',
-            date: '发布日期',
-            toggle: 'Switch to English'
-        },
-        en: {
-            todaySelection: "Today's Selection",
-            aiSummary: 'AI Deep Analysis',
-            readOriginal: 'Read Paper',
-            authors: 'Authors',
-            date: 'Published',
-            toggle: '切换至中文'
-        }
-    }[lang];
+    const { lang, t } = useLang();
 
     return (
         <div className="glass-card animate-fade-in" style={{ animationDelay: '0.1s' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+            <div style={{ marginBottom: '1.5rem' }}>
                 <div className="badge">{t.todaySelection}</div>
-                <button
-                    onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
-                    className="btn-glass"
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
-                >
-                    <Languages size={14} />
-                    {t.toggle}
-                </button>
             </div>
 
             <h2 style={{ fontSize: '2rem', marginBottom: '1.5rem', lineHeight: '1.3' }}>

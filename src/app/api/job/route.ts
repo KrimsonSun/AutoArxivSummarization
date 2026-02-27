@@ -3,6 +3,7 @@ import { fetchRandomCsPaper } from '@/lib/arxiv';
 import { summarizePaper } from '@/lib/llm';
 import { dbOps } from '@/lib/db';
 import { sendDailySummary } from '@/lib/email';
+import { revalidatePath } from 'next/cache';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -25,8 +26,8 @@ export async function GET(request: Request) {
 
         console.log('Fetched paper:', paper.title);
 
-        // 2. Summarize paper (Bilingual)
-        const bilingualSummary = await summarizePaper(paper.title, paper.abstract);
+        // 2. Summarize paper — sends full PDF to Gemini, falls back to abstract
+        const bilingualSummary = await summarizePaper(paper.title, paper.abstract, paper.arxiv_id);
         if (!bilingualSummary) {
             return NextResponse.json({ error: 'Failed to summarize paper' }, { status: 500 });
         }
@@ -34,7 +35,7 @@ export async function GET(request: Request) {
         console.log('Generated bilingual summary.');
 
         // 3. Save to DB
-        dbOps.savePaper({
+        await dbOps.savePaper({
             ...paper,
             authors: paper.authors.join(', '),
             summary_zh: bilingualSummary.zh,
@@ -43,9 +44,12 @@ export async function GET(request: Request) {
 
         console.log('Saved to database.');
 
-        // 4. Notify Prefect for each subscriber
-        const subscribers = dbOps.getAllSubscribers();
-        console.log(`Notifying Prefect for ${subscribers.length} subscribers...`);
+        // 4. Purge Next.js Cache for the home page
+        revalidatePath('/');
+
+        // 5. Notify subscribers via Brevo
+        const subscribers = await dbOps.getAllSubscribers();
+        console.log(`Sending to ${subscribers.length} subscribers...`);
 
         for (const sub of subscribers) {
             await sendDailySummary(
@@ -53,7 +57,8 @@ export async function GET(request: Request) {
                 paper.title,
                 bilingualSummary.zh,
                 bilingualSummary.en,
-                paper.url
+                paper.url,
+                sub.language ?? 'zh'
             );
         }
 
