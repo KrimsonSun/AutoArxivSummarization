@@ -1,0 +1,10 @@
+node_modules
+.next
+.git
+.env*
+!.env.example
+data/*.sqlite
+data/*.sqlite-journal
+Dockerfile
+.dockerignore
+README.md
