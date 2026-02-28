@@ -1,5 +1,5 @@
 import { parseStringPromise } from 'xml2js';
-import { subMonths, format } from 'date-fns';
+import { subMonths, subDays, format } from 'date-fns';
 
 export interface ArxivPaper {
     arxiv_id: string;
@@ -11,16 +11,19 @@ export interface ArxivPaper {
 }
 
 export async function fetchRandomCsPaper(): Promise<ArxivPaper | null> {
-    const endDate = new Date();
-    const startDate = subMonths(endDate, 1);
+    const today = new Date();
+
+    // Range: published between 30 days ago and 5 days ago
+    // (not too old, not too fresh — avoids pre-prints with uncorrected errors)
+    const startDate = subMonths(today, 1);   // 30 days ago
+    const endDate = subDays(today, 5);     // 5 days ago
 
     const startDateStr = format(startDate, 'yyyyMMddHHmm');
     const endDateStr = format(endDate, 'yyyyMMddHHmm');
 
-    // ArXiv API query for CS category papers from the last month
-    // We fetch up to 50 papers to increase randomness
-    const query = `cat:cs.*+AND+submittedDate:[${startDateStr}+TO+${endDateStr}]`;
-    const url = `http://export.arxiv.org/api/query?search_query=${query}&max_results=50&sortBy=submittedDate&sortOrder=descending`;
+    // Only Machine Learning (cs.LG) and Artificial Intelligence (cs.AI)
+   v
+    const url = `http://export.arxiv.org/api/query?search_query=${query}&max_results=100&sortBy=submittedDate&sortOrder=descending`;
 
     try {
         const response = await fetch(url);
@@ -32,6 +35,8 @@ export async function fetchRandomCsPaper(): Promise<ArxivPaper | null> {
             console.warn('No papers found for the given criteria.');
             return null;
         }
+
+        console.log(`Found ${entries.length} papers in cs.LG/cs.AI (last 5-30 days). Picking one at random.`);
 
         // Pick a random entry
         const randomIndex = Math.floor(Math.random() * entries.length);

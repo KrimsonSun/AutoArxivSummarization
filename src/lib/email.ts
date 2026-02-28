@@ -1,6 +1,69 @@
 /**
- * Brevo (formerly Sendinblue) Transactional Email Integration
+ * Brevo Transactional Email Integration
+ * Renders structured TL;DR + SECTION summaries into email-safe HTML.
  */
+
+// ─── Parser (same logic as PaperDisplay.tsx but produces email-safe HTML) ────
+
+function mdToEmailHtml(text: string): string {
+  return text
+    // **bold** → <strong>
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // *italic* → <em>
+    .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
+    // Numbered list "1.  text" or "1. text"
+    .replace(/^(\d+)\.\s{1,3}(.+)$/gm, '<div style="margin:4px 0 4px 16px;">$1.&nbsp;$2</div>')
+    // Bullet list "* text" or "- text"
+    .replace(/^[*\-]\s+(.+)$/gm, '<div style="margin:4px 0 4px 16px;">•&nbsp;$1</div>')
+    // Remaining newlines → <br>
+    .replace(/\n/g, '<br>');
+}
+
+interface EmailSection { title: string; content: string; }
+
+function parseSummaryForEmail(text: string): { tldr: string | null; sections: EmailSection[] } {
+  const tldrMatch = text.match(/TL;DR:\s*([\s\S]+?)(?=\n\s*\nSECTION:|\n\s*SECTION:|$)/i);
+  const tldr = tldrMatch ? tldrMatch[1].trim() : null;
+
+  const parts = text.split(/\n+SECTION:\s*/);
+  const sections: EmailSection[] = [];
+  for (let i = 1; i < parts.length; i++) {
+    const nl = parts[i].indexOf('\n');
+    if (nl === -1) continue;
+    const title = parts[i].slice(0, nl).trim();
+    const content = parts[i].slice(nl + 1).trim();
+    if (title && content) sections.push({ title, content });
+  }
+  return { tldr, sections };
+}
+
+// ─── Build section HTML blocks ─────────────────────────────────────────────
+
+function buildSectionHtml(sections: EmailSection[], isZh: boolean): string {
+  if (sections.length === 0) return '';
+
+  const sectionItems = sections.map(sec => `
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;">
+          <tr>
+            <td style="background:#f0f4ff;padding:8px 16px;border-bottom:1px solid #e2e8f0;">
+              <span style="font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#6366f1;">${sec.title}</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#ffffff;padding:14px 16px;font-size:14px;line-height:1.75;color:#334155;">
+              ${mdToEmailHtml(sec.content)}
+            </td>
+          </tr>
+        </table>`).join('');
+
+  return `
+        <p style="font-weight:700;margin:24px 0 10px;color:#6366f1;font-size:13px;text-transform:uppercase;letter-spacing:1px;">
+          ${isZh ? 'AI 深度解析' : 'AI Deep Analysis'}
+        </p>
+        ${sectionItems}`;
+}
+
+// ─── Main export ───────────────────────────────────────────────────────────
 
 export async function sendDailySummary(
   email: string,
@@ -15,17 +78,17 @@ export async function sendDailySummary(
   const SENDER_NAME = process.env.SENDER_NAME || 'Auto ArXiv';
 
   if (!BREVO_API_KEY) {
-    console.warn('BREVO_API_KEY is missing. Check your .env.local file.');
+    console.warn('BREVO_API_KEY is missing.');
     return { success: false, error: 'MISSING_BREVO_KEY' };
   }
 
-  const unsubscribeUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/unsubscribe?email=${encodeURIComponent(email)}`;
-
   const isZh = language === 'zh';
+  const rawSummary = isZh ? summary_zh : summary_en;
+  const { tldr, sections } = parseSummaryForEmail(rawSummary);
+
   const subject = isZh ? `今日专题: ${title}` : `Today's Paper: ${title}`;
-  const summary = isZh ? summary_zh : summary_en;
   const headerLabel = isZh ? 'Auto ArXiv 每日总结' : 'Auto ArXiv Daily Digest';
-  const summaryLabel = isZh ? 'AI 摘要' : 'AI Summary';
+  const tldrLabel = isZh ? '一句话总结' : 'TL;DR';
   const ctaLabel = isZh ? '查看 arXiv 原文 →' : 'Read on arXiv →';
   const siteLabel = isZh ? '访问 Auto ArXiv 网站 →' : 'Visit Auto ArXiv →';
   const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://arxiv-app-566875806616.us-central1.run.app';
@@ -33,35 +96,86 @@ export async function sendDailySummary(
     ? '您收到这封邮件是因为您订阅了 Auto ArXiv。'
     : 'You received this email because you subscribed to Auto ArXiv.';
   const unsubLabel = isZh ? '退订' : 'Unsubscribe';
+  const unsubscribeUrl = `${siteUrl}/api/unsubscribe?email=${encodeURIComponent(email)}`;
 
-  const emailData = {
-    sender: { name: SENDER_NAME, email: SENDER_EMAIL },
-    to: [{ email }],
-    subject,
-    htmlContent: `
-      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
-        <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 28px; color: white; text-align: center;">
-          <h1 style="margin: 0; font-size: 22px; letter-spacing: 0.5px;">${headerLabel}</h1>
-        </div>
-        <div style="padding: 32px; color: #1e293b; line-height: 1.7;">
-          <h2 style="margin-top: 0; color: #0f172a; font-size: 20px;">${title}</h2>
-          <div style="background: #f8fafc; border-left: 4px solid #6366f1; padding: 20px; margin: 24px 0; border-radius: 0 8px 8px 0;">
-            <p style="font-weight: 700; margin: 0 0 12px; color: #6366f1; font-size: 13px; text-transform: uppercase; letter-spacing: 1px;">${summaryLabel}</p>
-            <p style="white-space: pre-wrap; margin: 0; color: #334155; font-size: 15px;">${summary}</p>
-          </div>
-          <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px;">
-            <a href="${url}" style="display: inline-block; background: #6366f1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px;">${ctaLabel}</a>
-            <a href="${siteUrl}" style="display: inline-block; background: transparent; color: #6366f1; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; border: 2px solid #6366f1;">${siteLabel}</a>
-          </div>
-        </div>
-        <div style="background: #f1f5f9; padding: 20px; text-align: center; font-size: 12px; color: #64748b;">
-          ${footerNote}
-          <br><br>
-          <a href="${unsubscribeUrl}" style="color: #94a3b8; text-decoration: underline;">${unsubLabel}</a>
-        </div>
-      </div>
-    `
-  };
+  // TL;DR block
+  const tldrBlock = tldr ? `
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;border-radius:10px;overflow:hidden;background:linear-gradient(135deg,#ede9fe,#dbeafe);border:1.5px solid #a5b4fc;">
+          <tr>
+            <td style="padding:4px 16px 0;">
+              <span style="font-size:10px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#6366f1;">⚡ ${tldrLabel}</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:6px 16px 14px;font-size:14px;line-height:1.7;font-weight:600;color:#1e1b4b;">
+              ${mdToEmailHtml(tldr)}
+            </td>
+          </tr>
+        </table>` : '';
+
+  const sectionsBlock = buildSectionHtml(sections, isZh);
+
+  // Fallback: if no structure parsed, show raw text
+  const contentBlock = (tldrBlock || sectionsBlock)
+    ? `${tldrBlock}${sectionsBlock}`
+    : `<div style="background:#f8fafc;border-left:4px solid #6366f1;padding:20px;border-radius:0 8px 8px 0;">
+              <p style="white-space:pre-wrap;margin:0;color:#334155;font-size:14px;line-height:1.75;">${rawSummary.replace(/\n/g, '<br>')}</p>
+           </div>`;
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html lang="${isZh ? 'zh' : 'en'}">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:20px;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;margin:0 auto;">
+    <tr>
+      <td>
+        <!-- Header -->
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:12px 12px 0 0;overflow:hidden;">
+          <tr>
+            <td style="padding:28px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:22px;letter-spacing:0.5px;">${headerLabel}</h1>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Body -->
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;padding:0;">
+          <tr>
+            <td style="padding:28px 32px 24px;">
+              <h2 style="margin:0 0 20px;color:#0f172a;font-size:19px;line-height:1.4;">${title}</h2>
+
+              ${contentBlock}
+
+              <!-- CTAs -->
+              <table cellpadding="0" cellspacing="0" style="margin-top:20px;">
+                <tr>
+                  <td style="padding-right:10px;">
+                    <a href="${url}" style="display:inline-block;background:#6366f1;color:#ffffff;padding:11px 22px;text-decoration:none;border-radius:8px;font-weight:700;font-size:14px;">${ctaLabel}</a>
+                  </td>
+                  <td>
+                    <a href="${siteUrl}" style="display:inline-block;background:transparent;color:#6366f1;padding:11px 22px;text-decoration:none;border-radius:8px;font-weight:700;font-size:14px;border:2px solid #6366f1;">${siteLabel}</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Footer -->
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;">
+          <tr>
+            <td style="padding:18px 32px;text-align:center;font-size:12px;color:#64748b;">
+              ${footerNote}<br><br>
+              <a href="${unsubscribeUrl}" style="color:#94a3b8;text-decoration:underline;">${unsubLabel}</a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
 
   try {
     const response = await fetch('https://api.brevo.com/v3/smtp/email', {
@@ -69,9 +183,14 @@ export async function sendDailySummary(
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'api-key': BREVO_API_KEY
+        'api-key': BREVO_API_KEY,
       },
-      body: JSON.stringify(emailData)
+      body: JSON.stringify({
+        sender: { name: SENDER_NAME, email: SENDER_EMAIL },
+        to: [{ email }],
+        subject,
+        htmlContent,
+      }),
     });
 
     if (!response.ok) {

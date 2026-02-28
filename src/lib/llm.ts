@@ -72,41 +72,77 @@ export async function summarizePaper(
     const usingFullPdf = !!pdfBase64;
 
     const prompt = usingFullPdf
-        ? `You are an expert academic researcher. You have been given the FULL PDF of a Computer Science research paper.
+        ? `You are an expert academic researcher analyzing a Computer Science paper (ML/AI domain).
+You have been given the FULL PDF. Read the entire paper carefully.
 
-Read the entire paper — introduction, methodology, experiments, results, conclusion.
-
-Provide a thorough summary covering:
-1. The core problem being solved
-2. The proposed approach / key innovation
-3. Main results and their significance
-4. Broader impact / takeaway
-
-Write BOTH a Chinese and an English summary. Use EXACTLY these delimiter tags and nothing else outside them:
+Output EXACTLY in the following structure — no extra text outside the <ZH> and <EN> tags:
 
 <ZH>
-[3-5 paragraph Chinese summary in Tech Blog style — informative and engaging]
+TL;DR: [一句话：用什么方法实现了什么目标，效果提升多少（如有具体数字请引用）]
+
+SECTION: 研究方法
+[详细描述本文提出的核心方法或模型架构]
+
+SECTION: 数据来源
+[描述使用的数据集、训练数据来源、数据规模等；若PDF未提及则写"本文未详细说明数据来源"]
+
+SECTION: 效果表现
+[列出关键实验结果、基准测试得分、与其他方法的对比]
+
+SECTION: [自选标题，如"核心创新点"、"局限性与未来方向"、"实际应用场景"等，选最能补充上述内容的角度]
+[对应内容]
 </ZH>
 
 <EN>
-[3-5 paragraph English summary — professional and academic-friendly]
+TL;DR: [One sentence: what method achieves what goal, with quantified improvement if available]
+
+SECTION: Research Methodology
+[Describe the proposed method, model architecture, or algorithmic approach]
+
+SECTION: Data Sources
+[Describe datasets used, training data, scale; write "Not detailed in paper" if unavailable]
+
+SECTION: Performance
+[Key experimental results, benchmark scores, comparison with baselines]
+
+SECTION: [Choose the most relevant title: e.g. "Key Innovations", "Limitations & Future Work", "Practical Applications"]
+[Corresponding content]
 </EN>
 
 Paper title: ${title}`
-        : `You are an expert academic researcher. Summarize this CS paper concisely.
+        : `You are an expert academic researcher. Analyze this CS/ML paper from its title and abstract.
 
-Use EXACTLY these delimiter tags:
+Output EXACTLY in this structure:
 
 <ZH>
-[Chinese summary in Tech Blog style]
+TL;DR: [一句话总结]
+
+SECTION: 研究方法
+[内容，若摘要信息不足则如实说明]
+
+SECTION: 数据来源
+[内容]
+
+SECTION: 效果表现
+[内容]
 </ZH>
 
 <EN>
-[English professional summary]
+TL;DR: [one sentence summary]
+
+SECTION: Research Methodology
+[content]
+
+SECTION: Data Sources
+[content]
+
+SECTION: Performance
+[content]
 </EN>
 
 Paper Title: ${title}
 Abstract: ${abstract}`;
+
 
     const parts: any[] = [{ text: prompt }];
 
