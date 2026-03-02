@@ -3,6 +3,8 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 export interface BilingualSummary {
     zh: string;
     en: string;
+    limitations?: string; // Stored in English for better search query generation
+    searchQueries?: string[]; // Recommended search terms to find papers solving limitations
 }
 
 /**
@@ -93,6 +95,14 @@ SECTION: [自选标题，如"核心创新点"、"局限性与未来方向"、"�
 [对应内容]
 </ZH>
 
+<LIMITATIONS>
+[Concisely list 2-3 specific technical limitations or future work items mentioned in the paper. English only.]
+</LIMITATIONS>
+
+<QUERIES>
+[Provide 3-5 specific search queries (keywords/phrases) that would help find papers resolving the limitations above. One query per line.]
+</QUERIES>
+
 <EN>
 TL;DR: [One sentence: what method achieves what goal, with quantified improvement if available]
 
@@ -140,6 +150,14 @@ SECTION: Performance
 [content]
 </EN>
 
+<LIMITATIONS>
+[Limitations based on abstract]
+</LIMITATIONS>
+
+<QUERIES>
+[Search queries based on abstract]
+</QUERIES>
+
 Paper Title: ${title}
 Abstract: ${abstract}`;
 
@@ -167,13 +185,17 @@ Abstract: ${abstract}`;
         // Parse delimiter-based response: <ZH>...</ZH> and <EN>...</EN>
         const zhMatch = text.match(/<ZH>([\s\S]*?)<\/ZH>/);
         const enMatch = text.match(/<EN>([\s\S]*?)<\/EN>/);
+        const limMatch = text.match(/<LIMITATIONS>([\s\S]*?)<\/LIMITATIONS>/);
+        const queryMatch = text.match(/<QUERIES>([\s\S]*?)<\/QUERIES>/);
 
         if (zhMatch && enMatch) {
             const summary: BilingualSummary = {
                 zh: zhMatch[1].trim(),
                 en: enMatch[1].trim(),
+                limitations: limMatch ? limMatch[1].trim() : undefined,
+                searchQueries: queryMatch ? queryMatch[1].trim().split('\n').map(q => q.trim()).filter(q => q.length > 0) : undefined,
             };
-            console.log(`Summary generated (${usingFullPdf ? 'full PDF' : 'abstract only'})`);
+            console.log(`Summary generated (${usingFullPdf ? 'full PDF' : 'abstract only'}) with ${summary.searchQueries?.length || 0} search queries.`);
             return summary;
         }
 

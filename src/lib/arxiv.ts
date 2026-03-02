@@ -22,7 +22,7 @@ export async function fetchRandomCsPaper(): Promise<ArxivPaper | null> {
     const endDateStr = format(endDate, 'yyyyMMddHHmm');
 
     // Only Machine Learning (cs.LG) and Artificial Intelligence (cs.AI)
-   v
+    v
     const url = `http://export.arxiv.org/api/query?search_query=${query}&max_results=100&sortBy=submittedDate&sortOrder=descending`;
 
     try {
@@ -53,5 +53,30 @@ export async function fetchRandomCsPaper(): Promise<ArxivPaper | null> {
     } catch (error) {
         console.error('Error fetching from arXiv:', error);
         return null;
+    }
+}
+export async function searchPapersByQuery(query: string, maxResults: number = 10): Promise<ArxivPaper[]> {
+    const encodedQuery = encodeURIComponent(query);
+    const url = `http://export.arxiv.org/api/query?search_query=all:${encodedQuery}&max_results=${maxResults}&sortBy=relevance&sortOrder=descending`;
+
+    try {
+        const response = await fetch(url);
+        const xml = await response.text();
+        const result = await parseStringPromise(xml);
+
+        const entries = result.feed.entry;
+        if (!entries || entries.length === 0) return [];
+
+        return entries.map((entry: any) => ({
+            arxiv_id: entry.id[0].split('/abs/')[1],
+            title: entry.title[0].replace(/\n/g, ' ').trim(),
+            abstract: entry.summary[0].replace(/\n/g, ' ').trim(),
+            authors: entry.author ? entry.author.map((a: any) => a.name[0]) : [],
+            url: entry.id[0],
+            published_date: entry.published[0]
+        }));
+    } catch (error) {
+        console.error(`Error searching arXiv for "${query}":`, error);
+        return [];
     }
 }
