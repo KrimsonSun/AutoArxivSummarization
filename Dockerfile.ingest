@@ -1,0 +1,27 @@
+FROM node:20-slim
+
+# Install pandoc, tar, and other system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    pandoc \
+    tar \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install tsx globally to avoid npx resolution issues in Cloud Run
+RUN npm install -g tsx
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files and install project dependencies
+COPY package*.json ./
+RUN npm install --include=dev
+
+# Copy source code
+COPY . .
+
+# Set target limit for daily ingestion
+ENV LIMIT=700
+ENV NODE_ENV=production
+
+# Use tsx directly (globally installed) to run the ingestion script
+CMD ["tsx", "src/scripts/daily_rag_pipeline.ts"]

@@ -28,20 +28,21 @@ export async function upsertPaperSolution(metadata: FineGrainedPaperMetadata) {
     const textToEmbed = `The problem focuses on: ${metadata.target_problem}. The presented solution is: ${metadata.proposed_solution}`;
     const values = await embedText(textToEmbed);
 
-    await pcIndex.upsert([{
-        id: `${metadata.arxiv_id}_sol`,
-        values,
-        metadata: {
-            arxiv_id: metadata.arxiv_id,
-            title: metadata.title,
-            published_date: metadata.published_date,
-            // Stringify array types if they contain huge texts, but Pinecone natively supports string[] 
-            domain: metadata.domain,
-            limitations: metadata.limitations, // Store limitations natively for future display
-            target_problem: metadata.target_problem,
-            is_code_available: metadata.is_code_available
-        }
-    }]);
+    await pcIndex.upsert({
+        records: [{
+            id: `${metadata.arxiv_id}_sol`,
+            values,
+            metadata: {
+                arxiv_id: metadata.arxiv_id,
+                title: metadata.title,
+                published_date: metadata.published_date,
+                domain: metadata.domain || [],
+                limitations: metadata.limitations || [],
+                target_problem: metadata.target_problem || "",
+                is_code_available: !!metadata.is_code_available
+            }
+        }]
+    });
 }
 
 /**
@@ -59,7 +60,7 @@ export async function findSolutionsForLimitation(limitationText: string, topK: n
         includeMetadata: true,
         // (Optional) Filter by specific domain
         filter: {
-            domain: { "$in": ["cs.LG", "cs.AI", "cs.CV", "cs.CL"] }
+            domain: { "$in": ["cs.LG"] }
         }
     });
 

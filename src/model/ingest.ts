@@ -1,13 +1,14 @@
 import { searchPapersByQuery } from '../lib/arxiv';
-import { extractPdfWithReducto } from './reducto';
+import { extractHtml } from './extractors/html';
+import { extractLatex } from './extractors/latex';
+import { extractPdfWithDocling } from './extractors/pdf';
 import { extractFineGrainedMetadata } from './extract';
 import { upsertPaperSolution } from './pinecone';
 
 // In a real scheduled job, you might want to paginate through 1000 items. 
 // We process in smaller batches here to respect rate limits.
 export async function runDailyIngestionBatch(batchSize: number = 50) {
-    // Query targeted specifically at computer science domains related to ML/AI
-    const query = "(cat:cs.LG OR cat:cs.AI OR cat:cs.CV OR cat:cs.CL)";
+    const query = "cat:cs.LG";
 
     console.log(`[Ingest] Fetching up to ${batchSize} latest papers from arXiv...`);
     // Note: For a 1000 paper batch, you would iterate with start=0, start=100, etc.
@@ -21,13 +22,24 @@ export async function runDailyIngestionBatch(batchSize: number = 50) {
 
             const pdfUrl = `https://arxiv.org/pdf/${paper.arxiv_id}`;
 
-            // Step A: Parse PDF using Reducto AI
-            console.log(`[${paper.arxiv_id}] -> 1. Parsing PDF via Reducto...`);
-            let textSource = await extractPdfWithReducto(pdfUrl);
-
-            if (!textSource) {
-                console.warn(`[${paper.arxiv_id}] -> Reducto failed. Falling back to abstract.`);
-                textSource = paper.abstract;
+            // Step A: Parse document in priority: HTML -> LaTeX -> PDF (Docling)
+            console.log(`[${paper.arxiv_id}] -> 1. Extracting text content...`);
+            let textSource = await extractHtml(paper.arxiv_id);
+            if (textSource) {
+                console.log(`[${paper.arxiv_id}] -> Extraction succeeded via HTML.`);
+            } else {
+                textSource = await extractLatex(paper.arxiv_id);
+                if (textSource) {
+                    console.log(`[${paper.arxiv_id}] -> Extraction succeeded via LaTeX.`);
+                } else {
+                    textSource = await extractPdfWithDocling(paper.arxiv_id);
+                    if (textSource) {
+                        console.log(`[${paper.arxiv_id}] -> Extraction succeeded via Docling PDF.`);
+                    } else {
+                        console.warn(`[${paper.arxiv_id}] -> All extraction methods failed. Falling back to abstract.`);
+                        textSource = paper.abstract;
+                    }
+                }
             }
 
             // Step B: Extract fine-grained limitations & solutions via Gemini

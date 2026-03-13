@@ -81,55 +81,136 @@ export async function searchPapersByQuery(query: string, maxResults: number = 10
     }
 }
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 /**
- * Fetches the latest CS papers (up to `limit`).
- * Respects arXiv rate limits by batching requests.
+ * Fetches cs.LG Machine Learning papers from the last 3 years using OAI-PMH.
+ * OAI-PMH is arXiv's official bulk metadata access protocol — no 429 throttling.
+ * Uses resumptionToken-based pagination. Returns papers in random order.
  */
-export async function fetchDailyCsPapers(limit: number = 1000): Promise<ArxivPaper[]> {
-    const query = 'cat:cs.LG+OR+cat:cs.AI+OR+cat:cs.CV+OR+cat:cs.CL';
-    const batchSize = 100;
-    let allPapers: ArxivPaper[] = [];
+export async function fetchDailyCsPapers(limit: number = 700): Promise<ArxivPaper[]> {
+    const OAI_BASE = 'http://export.arxiv.org/oai2';
 
-    for (let start = 0; start < limit; start += batchSize) {
-        const url = `http://export.arxiv.org/api/query?search_query=${query}&start=${start}&max_results=${Math.min(batchSize, limit - start)}&sortBy=submittedDate&sortOrder=descending`;
-        console.log(`Fetching arXiv papers start=${start}...`);
-        
+    // OAI-PMH uses YYYY-MM-DD date format
+    const now = new Date();
+    const threeYearsAgo = new Date(now);
+    threeYearsAgo.setUTCFullYear(threeYearsAgo.getUTCFullYear() - 3);
+    const fromDate = threeYearsAgo.toISOString().split('T')[0]; // e.g. "2023-03-12"
+
+    const allPapers: ArxivPaper[] = [];
+    let resumptionToken: string | null = null;
+    let page = 0;
+
+    // Initial URL: ListRecords filtered by top-level set 'cs' (OAI-PMH does not have cs.LG as a set)
+    // We filter to cs.LG by checking the categories field in each record.
+    const initialUrl = `${OAI_BASE}?verb=ListRecords&set=cs&from=${fromDate}&metadataPrefix=arXiv`;
+
+    while (allPapers.length < limit) {
+        const url = resumptionToken
+            ? `${OAI_BASE}?verb=ListRecords&resumptionToken=${encodeURIComponent(resumptionToken)}`
+            : initialUrl;
+
+        page++;
+        console.log(`[OAI-PMH] Fetching page ${page} (collected: ${allPapers.length}/${limit})...`);
+
+        let response: Response;
         try {
-            const response = await fetch(url);
-            if (!response.ok) {
-                console.error(`arXiv API error: ${response.statusText}`);
-                break;
-            }
-            const xml = await response.text();
-            const result = await parseStringPromise(xml);
-            const entries = result.feed.entry;
-
-            if (!entries || entries.length === 0) {
-                console.log('No more papers found.');
-                break;
-            }
-
-            const parsedPapers = entries.map((entry: any) => ({
-                arxiv_id: entry.id[0].split('/abs/')[1],
-                title: entry.title[0].replace(/\n/g, ' ').trim(),
-                abstract: entry.summary[0].replace(/\n/g, ' ').trim(),
-                authors: entry.author ? entry.author.map((a: any) => a.name[0]) : [],
-                url: entry.id[0],
-                published_date: entry.published[0]
-            }));
-
-            allPapers = allPapers.concat(parsedPapers);
-
-            if (entries.length < batchSize) break;
-
-            if (start + batchSize < limit) {
-                await new Promise(resolve => setTimeout(resolve, 3100)); // 3.1s delay
-            }
-        } catch (error) {
-            console.error('Error fetching daily arXiv papers:', error);
+            response = await fetch(url, {
+                headers: { 'User-Agent': 'AutoArxivSummarization/1.0 (research project)' }
+            });
+        } catch (err) {
+            console.error(`[OAI-PMH] Network error on page ${page}:`, err);
             break;
         }
+
+        if (!response.ok) {
+            console.error(`[OAI-PMH] HTTP error: ${response.status} ${response.statusText}`);
+            break;
+        }
+
+        const xml = await response.text();
+        let parsed: any;
+        try {
+            parsed = await parseStringPromise(xml, { explicitArray: true });
+        } catch (err) {
+            console.error(`[OAI-PMH] XML parse error:`, err);
+            break;
+        }
+
+        const oaiRoot = parsed?.['OAI-PMH'];
+        if (!oaiRoot) {
+            console.error(`[OAI-PMH] Unexpected response structure.`);
+            break;
+        }
+
+        // Check for OAI errors (e.g. badResumptionToken)
+        if (oaiRoot.error) {
+            const errMsg = oaiRoot.error[0]?._ || JSON.stringify(oaiRoot.error);
+            console.error(`[OAI-PMH] OAI Error: ${errMsg}`);
+            break;
+        }
+
+        const records: any[] = oaiRoot?.ListRecords?.[0]?.record ?? [];
+        
+        for (const record of records) {
+            if (allPapers.length >= limit) break;
+            try {
+                const metadata = record?.metadata?.[0]?.arXiv?.[0];
+                if (!metadata) continue;
+
+                const arxivIdRaw: string = metadata?.id?.[0] ?? '';
+                const arxiv_id = arxivIdRaw.trim();
+                if (!arxiv_id) continue;
+
+                // Filter: only keep papers tagged as cs.LG
+                const categories: string = metadata?.categories?.[0] ?? '';
+                if (!categories.includes('cs.LG')) continue;
+
+                const title: string = (metadata?.title?.[0] ?? '').replace(/\s+/g, ' ').trim();
+                const abstract: string = (metadata?.abstract?.[0] ?? '').replace(/\s+/g, ' ').trim();
+                const published_date: string = metadata?.created?.[0] ?? '';
+
+                const authorList = metadata?.authors?.[0]?.author ?? [];
+                const authors: string[] = authorList.map((a: any) => {
+                    const forenames = a?.forenames?.[0] ?? '';
+                    const keyname = a?.keyname?.[0] ?? '';
+                    return `${forenames} ${keyname}`.trim();
+                });
+
+                allPapers.push({
+                    arxiv_id,
+                    title,
+                    abstract,
+                    authors,
+                    url: `https://arxiv.org/abs/${arxiv_id}`,
+                    published_date
+                });
+            } catch {
+                // skip malformed record
+            }
+        }
+
+        // Grab resumptionToken for next page
+        const tokenNode = oaiRoot?.ListRecords?.[0]?.resumptionToken?.[0];
+        resumptionToken = typeof tokenNode === 'string'
+            ? tokenNode
+            : tokenNode?._ ?? null;
+
+        if (!resumptionToken) {
+            console.log(`[OAI-PMH] No resumptionToken — end of results.`);
+            break;
+        }
+
+        console.log(`[OAI-PMH] Page ${page} done (${records.length} records). Waiting 20s before next page...`);
+        await sleep(20000); // OAI-PMH ToS: courteous delay between requests
     }
 
+    // Fisher-Yates shuffle for random order
+    for (let i = allPapers.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [allPapers[i], allPapers[j]] = [allPapers[j], allPapers[i]];
+    }
+
+    console.log(`[OAI-PMH] Done. Total papers fetched and shuffled: ${allPapers.length}`);
     return allPapers;
 }

@@ -1,4 +1,7 @@
 import { fetchDailyCsPapers } from '../lib/arxiv';
+import { extractHtml } from '../model/extractors/html';
+import { extractLatex } from '../model/extractors/latex';
+import { extractPdfWithDocling } from '../model/extractors/pdf';
 import { extractFineGrainedMetadata } from '../model/extract';
 import { upsertPaperSolution } from '../model/pinecone';
 
@@ -22,14 +25,30 @@ async function runDailyRagPipeline() {
         console.log(`\n[${i + 1}/${papers.length}] Processing: ${paper.title} (${paper.arxiv_id})`);
 
         try {
-            // arXiv URL structure: http://arxiv.org/abs/1234.56789
-            // PDF URL: http://arxiv.org/pdf/1234.56789.pdf
-            const pdfUrl = `https://arxiv.org/pdf/${paper.arxiv_id}.pdf`;
+            // Step A: Parse document in priority: HTML -> LaTeX -> PDF (Docling)
+            console.log(`[${paper.arxiv_id}] -> 1. Extracting text content...`);
+            let textSource = await extractHtml(paper.arxiv_id);
+            if (textSource) {
+                console.log(`[${paper.arxiv_id}] -> Extraction succeeded via HTML.`);
+            } else {
+                textSource = await extractLatex(paper.arxiv_id);
+                if (textSource) {
+                    console.log(`[${paper.arxiv_id}] -> Extraction succeeded via LaTeX.`);
+                } else {
+                    textSource = await extractPdfWithDocling(paper.arxiv_id);
+                    if (textSource) {
+                        console.log(`[${paper.arxiv_id}] -> Extraction succeeded via Docling PDF.`);
+                    } else {
+                        console.warn(`[${paper.arxiv_id}] -> All extraction methods failed. Falling back to abstract.`);
+                        textSource = paper.abstract;
+                    }
+                }
+            }
 
-            // Step A: Parse PDF and Extract Metadata using Gemini File API (Combined Step)
+            // Step B: Parse Extracted Text and Extract Metadata using Gemini
             console.log('  -> Extracting fine-grained metadata with Gemini...');
             const metadata = await extractFineGrainedMetadata(
-                pdfUrl,
+                textSource, // PASS TEXT INSTEAD OF PDF URL
                 paper.title,
                 paper.arxiv_id,
                 paper.published_date
@@ -41,7 +60,7 @@ async function runDailyRagPipeline() {
             } else {
                 // Optional: fallback domain from arxiv if Gemini fails to determine
                 if (!metadata.domain || metadata.domain.length === 0) {
-                    metadata.domain = ['cs.LG', 'cs.AI']; // General guess for CS daily fetch
+                    metadata.domain = ['cs.LG']; // General guess for ML daily fetch
                 }
 
                 // Step B: Upsert into Pinecone

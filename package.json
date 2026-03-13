@@ -14,6 +14,7 @@
     "@pinecone-database/pinecone": "^7.1.0",
     "axios": "^1.13.6",
     "better-sqlite3": "^12.6.2",
+    "cheerio": "^1.2.0",
     "date-fns": "^4.1.0",
     "dotenv": "^17.3.1",
     "form-data": "^4.0.5",
@@ -24,14 +25,17 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "resend": "^6.9.2",
+    "turndown": "^7.2.2",
     "xml2js": "^0.6.2"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
-    "@types/node": "^20",
+    "@types/cheerio": "^0.22.35",
+    "@types/node": "^20.19.37",
     "@types/nodemailer": "^7.0.11",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/turndown": "^5.0.6",
     "@types/xml2js": "^0.4.14",
     "typescript": "^5"
   }
