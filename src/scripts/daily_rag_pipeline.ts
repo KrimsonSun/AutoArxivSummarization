@@ -3,7 +3,7 @@ import { extractHtml } from '../model/extractors/html';
 import { extractLatex } from '../model/extractors/latex';
 import { extractPdfWithDocling } from '../model/extractors/pdf';
 import { extractFineGrainedMetadata } from '../model/extract';
-import { upsertPaperSolution } from '../model/pinecone';
+import { upsertPaperSolution, upsertFullPaperChunks } from '../model/pinecone';
 
 // Optional: you can run this with a limit like: limit=10 npm run rag:daily
 const LIMIT = process.env.LIMIT ? parseInt(process.env.LIMIT, 10) : 1000;
@@ -45,31 +45,13 @@ async function runDailyRagPipeline() {
                 }
             }
 
-            // Step B: Parse Extracted Text and Extract Metadata using Gemini
-            console.log('  -> Extracting fine-grained metadata with Gemini...');
-            const metadata = await extractFineGrainedMetadata(
-                textSource, // PASS TEXT INSTEAD OF PDF URL
-                paper.title,
-                paper.arxiv_id,
-                paper.published_date
-            );
+            // Step B: Direct embedding of full text into chunks
+            console.log(`  -> Chunking and upserting full paper text (${textSource.length} chars) into Pinecone...`);
+            await upsertFullPaperChunks(paper, textSource);
 
-            if (!metadata) {
-                console.warn(`  -> Gemini metadata extraction failed. Skipping paper.`);
-                failCount++;
-            } else {
-                // Optional: fallback domain from arxiv if Gemini fails to determine
-                if (!metadata.domain || metadata.domain.length === 0) {
-                    metadata.domain = ['cs.LG']; // General guess for ML daily fetch
-                }
+            console.log('  -> Successfully processed & indexed!');
+            successCount++;
 
-                // Step B: Upsert into Pinecone
-                console.log('  -> Upserting solution into Pinecone...');
-                await upsertPaperSolution(metadata);
-
-                console.log('  -> Successfully processed & indexed!');
-                successCount++;
-            }
         } catch (error) {
             console.error(`Error processing paper ${paper.arxiv_id}:`, error);
             failCount++;
