@@ -1,81 +1,121 @@
-import { fetchDailyCsPapers } from '../lib/arxiv';
+import { fetchDailyCsPapersIncremental } from '../lib/arxiv';
 import { extractHtml } from '../model/extractors/html';
 import { extractLatex } from '../model/extractors/latex';
 import { extractPdfWithDocling } from '../model/extractors/pdf';
-import { extractFineGrainedMetadata } from '../model/extract';
-import { upsertPaperSolution, upsertFullPaperChunks } from '../model/pinecone';
+import { upsertFullPaperChunks, checkPaperExists } from '../model/pinecone';
+import fs from 'fs';
+import path from 'path';
 
-// Optional: you can run this with a limit like: limit=10 npm run rag:daily
-const LIMIT = process.env.LIMIT ? parseInt(process.env.LIMIT, 10) : 1000;
+// Target a high paper limit as requested by the user
+const LIMIT = process.env.LIMIT ? parseInt(process.env.LIMIT, 10) : 10000;
+const CONCURRENCY = 5; // Best performance with 4Gi memory
+const LOG_FILE = path.join(process.cwd(), 'ingestion_log.json');
 
-async function runDailyRagPipeline() {
-    console.log(`Starting Daily RAG Pipeline. Target paper count: ${LIMIT}`);
-
-    // 1. Fetch papers from arXiv
-    console.log('Fetching papers from arXiv...');
-    const papers = await fetchDailyCsPapers(LIMIT);
-    console.log(`Fetched ${papers.length} papers from arXiv.`);
-
-    let successCount = 0;
-    let failCount = 0;
-
-    // 2. Process each paper sequentially
-    for (let i = 0; i < papers.length; i++) {
-        const paper = papers[i];
-        console.log(`\n[${i + 1}/${papers.length}] Processing: ${paper.title} (${paper.arxiv_id})`);
-
-        try {
-            // Step A: Parse document in priority: HTML -> LaTeX -> PDF (Docling)
-            console.log(`[${paper.arxiv_id}] -> 1. Extracting text content...`);
-            let textSource = await extractHtml(paper.arxiv_id);
-            if (textSource) {
-                console.log(`[${paper.arxiv_id}] -> Extraction succeeded via HTML.`);
-            } else {
-                textSource = await extractLatex(paper.arxiv_id);
-                if (textSource) {
-                    console.log(`[${paper.arxiv_id}] -> Extraction succeeded via LaTeX.`);
-                } else {
-                    textSource = await extractPdfWithDocling(paper.arxiv_id);
-                    if (textSource) {
-                        console.log(`[${paper.arxiv_id}] -> Extraction succeeded via Docling PDF.`);
-                    } else {
-                        console.warn(`[${paper.arxiv_id}] -> All extraction methods failed. Falling back to abstract.`);
-                        textSource = paper.abstract;
-                    }
-                }
-            }
-
-            // Step B: Direct embedding of full text into chunks
-            console.log(`  -> Chunking and upserting full paper text (${textSource.length} chars) into Pinecone...`);
-            await upsertFullPaperChunks(paper, textSource);
-
-            console.log('  -> Successfully processed & indexed!');
-            successCount++;
-
-        } catch (error) {
-            console.error(`Error processing paper ${paper.arxiv_id}:`, error);
-            failCount++;
+async function processPaper(paper: any, currentCount: number, totalLimit: number) {
+    console.log(`\n[${currentCount}/${totalLimit}] Starting: ${paper.title} (${paper.arxiv_id})`);
+    
+    try {
+        // Step 0: Check if paper already exists in Pinecone
+        const exists = await checkPaperExists(paper.arxiv_id);
+        if (exists) {
+            console.log(`[${paper.arxiv_id}] Already indexed. Skipping.`);
+            return { success: true, arxiv_id: paper.arxiv_id, method: "Skipped (Exists)" };
         }
 
-        // To comply with Gemini Free Tier limit of 15 Requests Per Minute (RPM),
-        // we must wait just over 4 seconds between each paper.
-        if (i < papers.length - 1) {
-            console.log('  -> Waiting 4.1 seconds to respect API rate limits...');
-            await new Promise(resolve => setTimeout(resolve, 4100)); 
+        // Step 1: Extract Text (HTML -> LaTeX -> PDF)
+        let textSource: string | null = await extractHtml(paper.arxiv_id);
+        let method = "HTML";
+
+        if (!textSource) {
+            textSource = await extractLatex(paper.arxiv_id);
+            method = "LaTeX";
         }
+
+        if (!textSource) {
+            textSource = await extractPdfWithDocling(paper.arxiv_id);
+            method = "Docling PDF";
+        }
+
+        if (!textSource) {
+            console.warn(`[${paper.arxiv_id}] All extraction methods failed. Using abstract.`);
+            textSource = paper.abstract || "";
+            method = "Abstract Only";
+        }
+
+        const finalText: string = textSource!!; // Guaranteed non-null now
+        console.log(`[${paper.arxiv_id}] Text extracted via ${method} (${finalText.length} chars).`);
+
+        // Step 2: Chunk and Embed
+        await upsertFullPaperChunks(paper, finalText);
+        
+        return { success: true, arxiv_id: paper.arxiv_id, method };
+    } catch (error: any) {
+        console.error(`[${paper.arxiv_id}] Failed:`, error.message);
+        return { success: false, arxiv_id: paper.arxiv_id, error: error.message };
     }
-
-    console.log('\n================================');
-    console.log('Daily RAG Pipeline Complete');
-    console.log(`Successfully Processed: ${successCount}`);
-    console.log(`Failed: ${failCount}`);
-    console.log('================================');
 }
 
-// Execute
-runDailyRagPipeline().then(() => {
-    process.exit(0);
-}).catch(err => {
-    console.error('Fatal error in daily RAG pipeline:', err);
+async function runDailyRagPipeline() {
+    console.log(`===========================================`);
+    console.log(`🚀 DAILY RAG INGESTION: TARGET ${LIMIT} PAPERS`);
+    console.log(`🚀 MODE: INCREMENTAL STREAMING`);
+    console.log(`===========================================`);
+
+    const startTime = Date.now();
+    const results: any[] = [];
+    let processedSoFar = 0;
+
+    // 1 & 2. Fetch and Process papers incrementally
+    const finalTotalFetched = await fetchDailyCsPapersIncremental(LIMIT, async (pagePapers) => {
+        // Process each page of papers with concurrency
+        for (let i = 0; i < pagePapers.length; i += CONCURRENCY) {
+            const batch = pagePapers.slice(i, i + CONCURRENCY);
+            const batchPromises = batch.map((p) => {
+                processedSoFar++;
+                return processPaper(p, processedSoFar, LIMIT);
+            });
+            
+            const batchResults = await Promise.all(batchPromises);
+            results.push(...batchResults);
+
+            // Progress update
+            const successful = results.filter(r => r.success).length;
+            const percent = ((processedSoFar / LIMIT) * 100).toFixed(1);
+            const elapsed = Math.round((Date.now() - startTime) / 1000);
+            console.log(`\n--- PROGRESS: ${processedSoFar}/${LIMIT} (${percent}%) | Success: ${successful} | Elapsed: ${elapsed}s ---`);
+        }
+    });
+
+    // 3. Final Summary
+    const successful = results.filter(r => r.success).length;
+    const failed = results.filter(r => !r.success).length;
+    const durationMins = ((Date.now() - startTime) / 60000).toFixed(1);
+
+    console.log(`\n===========================================`);
+    console.log(`✅ INGESTION COMPLETE`);
+    console.log(`- Total Time: ${durationMins} minutes`);
+    console.log(`- Successfully Processed: ${successful}`);
+    console.log(`- Failed: ${failed}`);
+    console.log(`- Total Metadata Records Fetched: ${finalTotalFetched}`);
+    console.log(`===========================================`);
+
+    // Save detailed results for audit
+    try {
+        fs.writeFileSync(LOG_FILE, JSON.stringify({
+            timestamp: new Date().toISOString(),
+            totalFetched: finalTotalFetched,
+            successful,
+            failed,
+            durationMins,
+            details: results
+        }, null, 2));
+        console.log(`Detailed logs saved to: ${LOG_FILE}`);
+    } catch (err) {
+        console.error('Failed to save log file:', err);
+    }
+}
+
+runDailyRagPipeline().catch(err => {
+    console.error('Fatal pipeline error:', err);
     process.exit(1);
 });

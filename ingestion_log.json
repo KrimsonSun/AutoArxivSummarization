@@ -1,0 +1,14 @@
+{
+  "timestamp": "2026-03-19T04:02:08.456Z",
+  "total": 1,
+  "successful": 1,
+  "failed": 0,
+  "durationMins": "0.7",
+  "details": [
+    {
+      "success": true,
+      "arxiv_id": "1905.10575",
+      "method": "HTML"
+    }
+  ]
+}
