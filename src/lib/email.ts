@@ -71,7 +71,8 @@ export async function sendDailySummary(
   summary_zh: string,
   summary_en: string,
   url: string,
-  language: 'zh' | 'en' = 'zh'
+  language: 'zh' | 'en' = 'zh',
+  adjudicatorResult?: any
 ) {
   const BREVO_API_KEY = process.env.BREVO_API_KEY;
   const SENDER_EMAIL = process.env.SENDER_EMAIL || 'daily@arxiv.app';
@@ -122,6 +123,56 @@ export async function sendDailySummary(
               <p style="white-space:pre-wrap;margin:0;color:#334155;font-size:14px;line-height:1.75;">${rawSummary.replace(/\n/g, '<br>')}</p>
            </div>`;
 
+  // Build adjudicator block
+  let adjudicatorBlock = '';
+  if (adjudicatorResult) {
+    const adj = adjudicatorResult;
+    
+    let solutionsHtml = '';
+    if (adj.solutions && adj.solutions.length > 0) {
+      solutionsHtml = adj.solutions.map((sol: any, idx: number) => {
+        let refsHtml = '';
+        if (sol.references && sol.references.length > 0) {
+           refsHtml = sol.references.map((r: any) => `
+             <div style="margin-top:10px;font-size:12px;background:#f8fafc;padding:8px;border-radius:4px;border-left:3px solid #cbd5e1;">
+                <strong>${r.title}</strong><br/>
+                <span style="color:#64748b;font-style:italic;">"${r.snippet}"</span>
+                ${r.recommendation_reason ? `<div style="margin-top:4px;color:#10b981;font-weight:bold;">💡 推荐理由：${r.recommendation_reason}</div>` : ''}
+             </div>
+           `).join('');
+        }
+        return `
+          <div style="margin-top:12px;padding-bottom:12px;border-bottom:1px dashed #e2e8f0;">
+             <div style="font-weight:bold;color:#4f46e5;margin-bottom:4px;">方案 ${idx + 1}: ${sol.direction}</div>
+             <div style="font-size:13px;color:#334155;line-height:1.6;">${sol.proposed_method}</div>
+             ${refsHtml}
+          </div>
+        `;
+      }).join('');
+    }
+
+    adjudicatorBlock = `
+        <div style="margin-top:32px;border:1px solid #fecdd3;border-radius:8px;overflow:hidden;background:#fff1f2;">
+           <div style="background:#f43f5e;color:#fff;padding:10px 16px;font-weight:bold;font-size:14px;letter-spacing:1px;">
+              🔍 批判性分析与破局 (Adjudicator)
+           </div>
+           <div style="padding:16px;">
+              <div style="font-size:14px;color:#9f1239;margin-bottom:8px;">
+                 <strong>🚨 逻辑错配诊断：</strong> ${adj.mismatch.mismatch_type} (${adj.mismatch.severity})
+              </div>
+              <div style="font-size:13px;color:#be123c;margin-bottom:16px;line-height:1.6;">
+                 <strong>断裂边：</strong> ${adj.mismatch.broken_edge}<br/>
+                 <strong>诊断原因：</strong> ${adj.mismatch.reasoning}
+              </div>
+              <div style="font-size:14px;color:#4f46e5;font-weight:bold;margin-bottom:8px;border-bottom:2px solid #e0e7ff;padding-bottom:4px;">
+                 ✨ 建设性Pinecone破局方案
+              </div>
+              ${solutionsHtml}
+           </div>
+        </div>
+    `;
+  }
+
   const htmlContent = `
 <!DOCTYPE html>
 <html lang="${isZh ? 'zh' : 'en'}">
@@ -146,6 +197,8 @@ export async function sendDailySummary(
               <h2 style="margin:0 0 20px;color:#0f172a;font-size:19px;line-height:1.4;">${title}</h2>
 
               ${contentBlock}
+              
+              ${adjudicatorBlock}
 
               <!-- CTAs -->
               <table cellpadding="0" cellspacing="0" style="margin-top:20px;">

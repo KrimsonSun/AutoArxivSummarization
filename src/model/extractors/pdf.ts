@@ -14,6 +14,16 @@ export async function extractPdfWithDocling(arxivId: string): Promise<string | n
     const pdfUrl = `https://arxiv.org/pdf/${arxivId}`;
     
     try {
+        console.log(`[PDF Extractor] Checking payload size for ${pdfUrl}...`);
+        const headResponse = await fetch(pdfUrl, { method: 'HEAD' });
+        if (headResponse.ok) {
+            const contentLength = headResponse.headers.get('content-length');
+            if (contentLength && parseInt(contentLength, 10) > 5 * 1024 * 1024) {
+                console.warn(`[PDF Extractor] PDF too large! (${(parseInt(contentLength) / 1024 / 1024).toFixed(2)} MB). Skipping Docling to strictly avoid OOM.`);
+                return "[OVERSIZE_SKIP]";
+            }
+        }
+
         console.log(`[PDF Extractor] Sending request to Docling API for ${pdfUrl}...`);
         
         // Note: The specific request format depends on how you deploy Docling (e.g. Docling-Server or custom wrapper)

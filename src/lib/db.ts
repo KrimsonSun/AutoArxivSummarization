@@ -10,6 +10,7 @@ export interface Paper {
   authors: string;
   url: string;
   published_date: string;
+  adjudicator_data?: string;
 }
 
 export interface Subscriber {
@@ -53,9 +54,13 @@ async function initSchema() {
         authors TEXT,
         url TEXT,
         published_date TEXT,
+        adjudicator_data TEXT,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `;
+
+    // Ensure the column exists for existing setups, including Supabase
+    await sql`ALTER TABLE papers ADD COLUMN IF NOT EXISTS adjudicator_data TEXT;`;
 
     await sql`
       CREATE TABLE IF NOT EXISTS subscribers (
@@ -93,11 +98,12 @@ export const dbOps = {
     await ensureDb();
     const sql = getSql();
     return await sql`
-      INSERT INTO papers (arxiv_id, title, abstract, summary_zh, summary_en, authors, url, published_date)
-      VALUES (${paper.arxiv_id}, ${paper.title}, ${paper.abstract}, ${paper.summary_zh}, ${paper.summary_en}, ${paper.authors}, ${paper.url}, ${paper.published_date})
+      INSERT INTO papers (arxiv_id, title, abstract, summary_zh, summary_en, authors, url, published_date, adjudicator_data)
+      VALUES (${paper.arxiv_id}, ${paper.title}, ${paper.abstract}, ${paper.summary_zh}, ${paper.summary_en}, ${paper.authors}, ${paper.url}, ${paper.published_date}, ${paper.adjudicator_data || null})
       ON CONFLICT (arxiv_id) DO UPDATE SET
         summary_zh = EXCLUDED.summary_zh,
         summary_en = EXCLUDED.summary_en,
+        adjudicator_data = EXCLUDED.adjudicator_data,
         created_at = CURRENT_TIMESTAMP
     `;
   },
@@ -112,6 +118,20 @@ export const dbOps = {
       return (result[0] as unknown as Paper) || null;
     } catch (err) {
       console.error('Error fetching latest paper:', err);
+      return null;
+    }
+  },
+
+  getLatestHighlightPaper: async (): Promise<Paper | null> => {
+    try {
+      await ensureDb();
+      const sql = getSql();
+      const result = await sql`
+        SELECT * FROM papers WHERE adjudicator_data IS NOT NULL ORDER BY created_at DESC LIMIT 1
+      `;
+      return (result[0] as unknown as Paper) || null;
+    } catch (err) {
+      console.error('Error fetching latest highlight paper:', err);
       return null;
     }
   },

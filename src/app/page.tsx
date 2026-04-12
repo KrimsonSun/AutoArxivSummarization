@@ -7,7 +7,7 @@ import PageContent from '@/components/PageContent';
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  const paper = await dbOps.getLatestPaper();
+  const paper = await dbOps.getLatestHighlightPaper() || await dbOps.getLatestPaper();
   return (
     <PageWrapper>
       <PageContent paper={paper} />

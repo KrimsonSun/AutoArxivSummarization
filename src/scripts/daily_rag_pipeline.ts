@@ -3,12 +3,13 @@ import { extractHtml } from '../model/extractors/html';
 import { extractLatex } from '../model/extractors/latex';
 import { extractPdfWithDocling } from '../model/extractors/pdf';
 import { upsertFullPaperChunks, checkPaperExists } from '../model/pinecone';
+import { dbOps } from '../lib/db';
 import fs from 'fs';
 import path from 'path';
 
 // Target a high paper limit as requested by the user
 const LIMIT = process.env.LIMIT ? parseInt(process.env.LIMIT, 10) : 10000;
-const CONCURRENCY = 5; // Best performance with 4Gi memory
+const CONCURRENCY = 2; // Reduced to 2 to prevent overloading the Docling VM embedding engine
 const LOG_FILE = path.join(process.cwd(), 'ingestion_log.json');
 
 async function processPaper(paper: any, currentCount: number, totalLimit: number) {
@@ -33,6 +34,17 @@ async function processPaper(paper: any, currentCount: number, totalLimit: number
 
         if (!textSource) {
             textSource = await extractPdfWithDocling(paper.arxiv_id);
+            if (textSource === "[OVERSIZE_SKIP]") {
+                console.log(`[${paper.arxiv_id}] Skipped Pinecone ingestion due to excessive PDF size. Logging to Supabase...`);
+                await dbOps.savePaper({
+                    ...paper,
+                    authors: paper.authors.join(', '),
+                    summary_zh: '【系统保护】由于原论文 PDF 过大(>5MB)，系统为防止云节点崩溃已主动拦截该文献的向量入库。',
+                    summary_en: '[Skipped] PDF exceptionally large. Passed over to strictly prevent Out-of-Memory limits.',
+                    adjudicator_data: JSON.stringify({ error: "OOM Protection: Oversized PDF skipped from Docling and Pinecone processing." })
+                });
+                return { success: true, arxiv_id: paper.arxiv_id, method: "Skipped (Oversize)" };
+            }
             method = "Docling PDF";
         }
 
@@ -60,6 +72,8 @@ async function runDailyRagPipeline() {
     console.log(`🚀 DAILY RAG INGESTION: TARGET ${LIMIT} PAPERS`);
     console.log(`🚀 MODE: INCREMENTAL STREAMING`);
     console.log(`===========================================`);
+
+
 
     const startTime = Date.now();
     const results: any[] = [];

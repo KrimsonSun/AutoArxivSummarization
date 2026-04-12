@@ -50,3 +50,27 @@ gcloud compute ssh docling-vm --zone us-central1-a --command "sudo docker rm -f 
 - **Worker Concurrency**: 5 (Optimized for 16GB RAM)
 - **Deduplication**: Enabled (Automatically skips already-indexed arXiv IDs)
 - **Local Services**: Communicates with Nomic (port 8001) and Docling (port 80) via `localhost`.
+
+---
+
+## 🖥️ Local Usage (Web App & Testing)
+
+To run the Next.js web application and Adjudicator UI locally on your computer:
+
+### Option 1: Quick Start Script
+You can simply run the provided startup script in the root directory:
+```bash
+./start.sh
+```
+
+### Option 2: Manual Start
+If you prefer running commands manually:
+1. **Install dependencies**: `npm install`
+2. **Start the Development Server**: `npm run dev`
+3. **Open Browser**: Navigate to [http://localhost:3000](http://localhost:3000)
+
+### Run Adjudicator Test Pipeline
+If you want to test the Adjudicator reasoning and Pinecone logic retrieval against the latest arXiv paper locally without touching the frontend:
+```bash
+npx tsx --env-file=.env.local fix_latest.ts
+```

@@ -28,9 +28,16 @@ export async function fetchRandomCsPaper(): Promise<ArxivPaper | null> {
     try {
         const response = await fetch(url);
         const xml = await response.text();
-        const result = await parseStringPromise(xml);
+        
+        let result: any;
+        try {
+            result = await parseStringPromise(xml);
+        } catch (parseErr) {
+            console.warn(`[arXiv] Failed to parse XML. Raw response: ${xml.substring(0, 200)}...`);
+            return null;
+        }
 
-        const entries = result.feed.entry;
+        const entries = result?.feed?.entry;
         if (!entries || entries.length === 0) {
             console.warn('No papers found for the given criteria.');
             return null;

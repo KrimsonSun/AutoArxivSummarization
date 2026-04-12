@@ -4,6 +4,7 @@ import { summarizePaper } from '@/lib/llm';
 import { dbOps } from '@/lib/db';
 import { sendDailySummary } from '@/lib/email';
 import { revalidatePath } from 'next/cache';
+import { runAdjudicator } from '../../../../Adjudicator/index';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -34,12 +35,22 @@ export async function GET(request: Request) {
 
         console.log('Generated bilingual summary.');
 
+        // 2.5 Adjudicator logical breakdown
+        console.log('Running Adjudicator Analysis...');
+        const adjudicatorResult = await runAdjudicator(paper.title, paper.abstract, "");
+        if (adjudicatorResult) {
+            console.log('Adjudicator analysis completed successfully.');
+        } else {
+            console.log('Adjudicator analysis failed or was skipped.');
+        }
+
         // 3. Save to DB
         await dbOps.savePaper({
             ...paper,
             authors: paper.authors.join(', '),
             summary_zh: bilingualSummary.zh,
-            summary_en: bilingualSummary.en
+            summary_en: bilingualSummary.en,
+            adjudicator_data: adjudicatorResult ? JSON.stringify(adjudicatorResult) : undefined
         });
 
         console.log('Saved to database.');
@@ -58,7 +69,8 @@ export async function GET(request: Request) {
                 bilingualSummary.zh,
                 bilingualSummary.en,
                 paper.url,
-                sub.language ?? 'zh'
+                sub.language ?? 'zh',
+                adjudicatorResult
             );
         }
 

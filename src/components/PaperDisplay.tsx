@@ -3,7 +3,8 @@
 import { useLang } from '@/context/LangContext';
 import {
     ExternalLink, BookOpen, User, Calendar,
-    Zap, FlaskConical, Database, BarChart2, Lightbulb
+    Zap, FlaskConical, Database, BarChart2, Lightbulb,
+    AlertTriangle, GitMerge, FileSearch, ArrowRight, Activity
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
@@ -16,6 +17,7 @@ interface PaperProps {
         summary_zh: string;
         summary_en: string;
         url: string;
+        adjudicator_data?: string;
     };
 }
 
@@ -86,6 +88,15 @@ export default function PaperDisplay({ paper }: PaperProps) {
     const rawSummary = lang === 'zh' ? paper.summary_zh : paper.summary_en;
     const { tldrHtml, sections } = parseSummary(rawSummary);
     const hasStructure = tldrHtml !== null || sections.length > 0;
+
+    let adjudicatorResult = null;
+    if (paper.adjudicator_data) {
+        try {
+            adjudicatorResult = JSON.parse(paper.adjudicator_data);
+        } catch (e) {
+            console.error("Failed to parse adjudicator data", e);
+        }
+    }
 
     return (
         <div className="glass-card animate-fade-in" style={{ animationDelay: '0.1s' }}>
@@ -203,6 +214,138 @@ export default function PaperDisplay({ paper }: PaperProps) {
                     />
                 )}
             </div>
+
+            {/* Adjudicator Analysis Block */}
+            {adjudicatorResult && (
+                <div style={{ marginBottom: '2.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                        <Activity size={22} className="text-primary" style={{ color: '#f43f5e' }} />
+                        <h3 style={{ fontSize: '1.2rem', margin: 0, color: '#f43f5e' }}>批判性分析与破局 (Adjudicator Analysis)</h3>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                        
+                        {/* 1. Mismatch Warning Card */}
+                        <div style={{
+                            background: 'rgba(244, 63, 94, 0.05)',
+                            border: '1px solid rgba(244, 63, 94, 0.3)',
+                            borderRadius: '12px',
+                            padding: '1.25rem',
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                                <AlertTriangle size={18} color="#f43f5e" />
+                                <h4 style={{ margin: 0, color: '#f43f5e', fontSize: '0.95rem' }}>
+                                    逻辑错配诊断: {adjudicatorResult.mismatch.mismatch_type} 
+                                    <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', padding: '0.1rem 0.4rem', background: '#f43f5e', color: '#fff', borderRadius: '4px' }}>
+                                        {adjudicatorResult.mismatch.severity}
+                                    </span>
+                                </h4>
+                            </div>
+                            <div style={{ fontSize: '0.9rem', lineHeight: 1.6, color: 'var(--foreground)' }}>
+                                <p style={{ margin: '0 0 0.5rem 0' }}><strong>断裂边：</strong> {adjudicatorResult.mismatch.broken_edge}</p>
+                                <p style={{ margin: 0 }}><strong>诊断原因：</strong> {adjudicatorResult.mismatch.reasoning}</p>
+                            </div>
+                        </div>
+
+                        {/* 2. Structured Graph view */}
+                        <div style={{
+                            background: 'rgba(255,255,255,0.02)',
+                            border: '1px solid var(--border)',
+                            borderRadius: '12px',
+                            padding: '1.25rem',
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: 'var(--primary)' }}>
+                                <GitMerge size={16} />
+                                <h4 style={{ margin: 0, fontSize: '0.9rem' }}>论文架构解构</h4>
+                            </div>
+                            
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr auto 1fr', gap: '0.5rem', alignItems: 'center' }}>
+                                {/* Premises */}
+                                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '0.75rem', borderRadius: '8px', fontSize: '0.8rem' }}>
+                                    <div style={{ fontWeight: 600, color: '#a855f7', marginBottom: '0.25rem' }}>前提 (Premises)</div>
+                                    <ul style={{ margin: 0, paddingLeft: '1rem', color: 'var(--muted)' }}>
+                                        {adjudicatorResult.graph.premises.map((p: any, i: number) => <li key={i}>{p.description}</li>)}
+                                    </ul>
+                                </div>
+                                <ArrowRight size={16} className="text-muted" />
+                                
+                                {/* Processes */}
+                                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '0.75rem', borderRadius: '8px', fontSize: '0.8rem' }}>
+                                    <div style={{ fontWeight: 600, color: '#3b82f6', marginBottom: '0.25rem' }}>过程 (Processes)</div>
+                                    <ul style={{ margin: 0, paddingLeft: '1rem', color: 'var(--muted)' }}>
+                                        {adjudicatorResult.graph.processes.map((p: any, i: number) => <li key={i}>{p.description}</li>)}
+                                    </ul>
+                                </div>
+                                <ArrowRight size={16} className="text-muted" />
+
+                                {/* Conclusions */}
+                                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '0.75rem', borderRadius: '8px', fontSize: '0.8rem' }}>
+                                    <div style={{ fontWeight: 600, color: '#10b981', marginBottom: '0.25rem' }}>结论 (Conclusions)</div>
+                                    <ul style={{ margin: 0, paddingLeft: '1rem', color: 'var(--muted)' }}>
+                                        {adjudicatorResult.graph.conclusions.map((p: any, i: number) => <li key={i}>{p.description}</li>)}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 3. Proposed Solutions + Pinecone Results */}
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', marginTop: '1rem' }}>
+                                <FileSearch size={18} className="text-primary" />
+                                <h4 style={{ margin: 0, fontSize: '1rem' }}>建设性破局方案 (Solutions)</h4>
+                            </div>
+                            
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                {adjudicatorResult.solutions.map((sol: any, idx: number) => (
+                                    <div key={idx} style={{
+                                        background: 'rgba(255,255,255,0.03)',
+                                        borderLeft: '4px solid var(--primary)',
+                                        padding: '1rem',
+                                        borderRadius: '0 8px 8px 0'
+                                    }}>
+                                        <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: '0.5rem', color: 'var(--primary)' }}>
+                                            方向 {idx + 1}: {sol.direction}
+                                        </div>
+                                        <div style={{ fontSize: '0.85rem', marginBottom: '1rem', lineHeight: 1.5 }}>
+                                            {sol.proposed_method}
+                                        </div>
+                                        
+                                        {sol.references && sol.references.length > 0 && (
+                                            <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.75rem', borderRadius: '8px' }}>
+                                                <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                                    <Database size={12} /> Pinecone 知识库推荐
+                                                </div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                    {sol.references.map((r: any, rIdx: number) => (
+                                                        <div key={rIdx} style={{ fontSize: '0.8rem' }}>
+                                                            {r.url ? (
+                                                                <a href={r.url} target="_blank" rel="noreferrer" style={{ color: '#60a5fa', textDecoration: 'none', fontWeight: 500 }}>
+                                                                    {r.title}
+                                                                </a>
+                                                            ) : (
+                                                                <span style={{ color: '#9ca3af', fontWeight: 500 }}>{r.title}</span>
+                                                            )}
+                                                            <div style={{ color: 'var(--muted)', marginTop: '0.2rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', fontStyle: 'italic' }}>
+                                                                " {r.snippet} "
+                                                            </div>
+                                                            {r.recommendation_reason && (
+                                                                <div style={{ marginTop: '0.4rem', color: '#10b981', fontSize: '0.75rem', fontWeight: 600, background: 'rgba(16, 185, 129, 0.1)', padding: '0.4rem 0.6rem', borderRadius: '6px', borderLeft: '3px solid #10b981' }}>
+                                                                    💡 推荐理由: {r.recommendation_reason}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            )}
 
             {/* CTA */}
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
