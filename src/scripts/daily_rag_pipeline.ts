@@ -7,9 +7,9 @@ import { dbOps } from '../lib/db';
 import fs from 'fs';
 import path from 'path';
 
-// Target a high paper limit as requested by the user
-const LIMIT = process.env.LIMIT ? parseInt(process.env.LIMIT, 10) : 10000;
-const CONCURRENCY = 2; // Reduced to 2 to prevent overloading the Docling VM embedding engine
+// Target a limited paper count to prevent embedding VM overload
+const LIMIT = process.env.LIMIT ? parseInt(process.env.LIMIT, 10) : 400;
+const CONCURRENCY = 2; // Low concurrency to keep Docling VM stable
 const LOG_FILE = path.join(process.cwd(), 'ingestion_log.json');
 
 async function processPaper(paper: any, currentCount: number, totalLimit: number) {

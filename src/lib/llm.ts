@@ -65,7 +65,7 @@ export async function summarizePaper(
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3-flash-preview',
         // No JSON mode — we use delimiter tags to avoid JSON escaping issues with long academic text
     });
 

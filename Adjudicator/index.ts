@@ -87,10 +87,10 @@ export async function runAdjudicator(title: string, abstract: string, fullText: 
         const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
         if (!apiKey) throw new Error("GEMINI_API_KEY is not defined.");
 
-        // We use gemini-2.5-pro for complex logical reasoning
+        // We use gemini-3.1-pro-preview for complex logical reasoning
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({
-            model: "gemini-2.5-pro",
+            model: "gemini-3.1-pro-preview",
             generationConfig: {
                 responseMimeType: "application/json",
                 responseSchema: matchSchema as any
@@ -132,7 +132,7 @@ export async function runAdjudicator(title: string, abstract: string, fullText: 
                     if (ref.arxiv_id && ref.arxiv_id !== 'unknown' && ref.arxiv_id !== 'error') {
                         try {
                             const recPrompt = `原论文缺陷：${data.mismatch.reasoning}\n检索到对策文献：《${ref.title}》，片段：${ref.snippet}。\n请直接用中文写一句（30字以内）犀利的推荐理由，解释该文献为何能弥补原论文的缺陷。不要输出JSON，直接输出一句话即可。`;
-                            const plainTextModel = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+                            const plainTextModel = genAI.getGenerativeModel({ model: "gemini-3.1-pro-preview" });
                             const recResult = await plainTextModel.generateContent(recPrompt);
                             ref.recommendation_reason = recResult.response.text().trim();
                         } catch (e) {
@@ -141,23 +141,13 @@ export async function runAdjudicator(title: string, abstract: string, fullText: 
                     }
                 }
 
-                // If Nomic search isn't available or returns 0 matches, fallback gracefully
-                if (references.length === 0) {
-                     references.push({
-                         title: "Pinecone Search (Fallback Recommendation)",
-                         snippet: "Could not retrieve similar papers. Try finding literature explicitly combining: " + sol.pinecone_query,
-                         arxiv_id: 'unknown',
-                         recommendation_reason: "本地知识库检索当前未覆盖此组合领域，请手动在此方向补充文献检索"
-                     });
-                }
+                // If search returns 0 real matches, leave references empty — no fake entries
+                // The frontend handles empty references gracefully
 
             } catch (err) {
                 console.warn("[Adjudicator] Pinecone search failed for query: " + sol.pinecone_query + ". Error: " + err);
-                references.push({
-                    title: "System Error (Local Vector DB Offline)",
-                    snippet: "Unable to retrieve real papers momentarily. (Ensure local embedding microservice is running).",
-                    arxiv_id: "error"
-                });
+                // Leave references empty — do NOT write fake error entries into DB
+                references = [];
             }
 
             finalSolutions.push({
