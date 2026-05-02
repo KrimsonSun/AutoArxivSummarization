@@ -38,7 +38,7 @@ export const translations = {
         langEn: 'English',
         noWantMore: '不再感兴趣？',
         // Footer
-        footer: `© ${new Date().getFullYear()} Auto ArXiv. Built with Next.js & Gemini 2.5 Flash.`,
+        footer: `© ${new Date().getFullYear()} Authors: Yijun Sun (yijunsun777@gmail.com) & Rebecca Li (rebeccaisme12138@gmail.com)`,
     },
     en: {
         tagline: 'One CS paper a day, deeply analyzed by AI. Stay sharp, effortlessly.',
@@ -63,14 +63,14 @@ export const translations = {
         langZh: '中文 (Chinese)',
         langEn: 'English',
         noWantMore: 'Not interested anymore?',
-        footer: `© ${new Date().getFullYear()} Auto ArXiv. Built with Next.js & Gemini 2.5 Flash.`,
+        footer: `© ${new Date().getFullYear()} Authors: Yijun Sun (yijunsun777@gmail.com) & Rebecca Li (rebeccaisme12138@gmail.com)`,
     },
 };
 
 const LangContext = createContext<LangContextType | null>(null);
 
 export function LangProvider({ children }: { children: ReactNode }) {
-    const [lang, setLang] = useState<Lang>('zh');
+    const [lang, setLang] = useState<Lang>('en');
     return (
         <LangContext.Provider value={{ lang, setLang, t: translations[lang] }}>
             {children}

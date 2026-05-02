@@ -3,6 +3,7 @@ import { summarizePaper } from '../lib/llm';
 import { runAdjudicator } from '../../Adjudicator/index';
 import { dbOps } from '../lib/db';
 import { sendDailySummary } from '../lib/email';
+import { extractHtml } from '../model/extractors/html';
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
@@ -52,7 +53,9 @@ async function runDailyHighlight() {
         // ── Step 3: Adjudicator — non-fatal ───────────────────────────────
         let adjudicatorResult = null;
         try {
-            adjudicatorResult = await runAdjudicator(highlight.title, highlight.abstract, "");
+            console.log("[HTML Extractor] Fetching full text for deeper Adjudicator analysis...");
+            const fullText = await extractHtml(highlight.arxiv_id) || "";
+            adjudicatorResult = await runAdjudicator(highlight.title, highlight.abstract, fullText);
             if (adjudicatorResult) {
                 console.log("Adjudicator analysis completed.");
             } else {

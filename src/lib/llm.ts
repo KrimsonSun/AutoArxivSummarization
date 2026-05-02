@@ -74,16 +74,30 @@ export async function summarizePaper(
     const usingFullPdf = !!pdfBase64;
 
     const prompt = usingFullPdf
-        ? `You are an expert academic researcher analyzing a Computer Science paper (ML/AI domain).
+        ? `You are explaining a machine learning paper to a beginner who has taken an undergraduate-level ML course.
 You have been given the FULL PDF. Read the entire paper carefully.
+
+Write a TL;DR in simple, clear language.
+Requirements:
+1. Start by clearly stating the field (e.g., NLP, computer vision, reinforcement learning, theory).
+2. Clearly state the problem the paper is trying to solve.
+3. Briefly describe what the authors did (no jargon, no equations).
+4. Clearly state the main result or improvement.
+5. End with a one-sentence intuitive takeaway starting with "👉 In short:" (or "👉 简而言之：" for Chinese).
+
+Constraints:
+- Avoid technical jargon unless absolutely necessary.
+- Do NOT use phrases like "this paper proposes a novel framework" without explanation.
+- The reader should understand the paper in 10 seconds.
+- Max 5 sentences for the TL;DR.
 
 Output EXACTLY in the following structure — no extra text outside the <ZH> and <EN> tags:
 
 <ZH>
-TL;DR: [一句话：用什么方法实现了什么目标，效果提升多少（如有具体数字请引用）]
+TL;DR: [此处输出符合上述5点的中文总结]
 
 SECTION: 研究方法
-[详细描述本文提出的核心方法或模型架构]
+[详细描述本文提出的核心方法或模型架构。尽量通俗易懂。]
 
 SECTION: 数据来源
 [描述使用的数据集、训练数据来源、数据规模等；若PDF未提及则写"本文未详细说明数据来源"]
@@ -104,10 +118,10 @@ SECTION: [自选标题，如"核心创新点"、"局限性与未来方向"、"�
 </QUERIES>
 
 <EN>
-TL;DR: [One sentence: what method achieves what goal, with quantified improvement if available]
+TL;DR: [Output the English summary following the 5-point structure]
 
 SECTION: Research Methodology
-[Describe the proposed method, model architecture, or algorithmic approach]
+[Describe the proposed method, model architecture, or algorithmic approach. Keep it accessible.]
 
 SECTION: Data Sources
 [Describe datasets used, training data, scale; write "Not detailed in paper" if unavailable]
@@ -120,12 +134,27 @@ SECTION: [Choose the most relevant title: e.g. "Key Innovations", "Limitations &
 </EN>
 
 Paper title: ${title}`
-        : `You are an expert academic researcher. Analyze this CS/ML paper from its title and abstract.
+        : `You are explaining a machine learning paper to a beginner who has taken an undergraduate-level ML course.
+Analyze this CS/ML paper from its title and abstract.
+
+Write a TL;DR in simple, clear language.
+Requirements:
+1. Start by clearly stating the field (e.g., NLP, computer vision, reinforcement learning, theory).
+2. Clearly state the problem the paper is trying to solve.
+3. Briefly describe what the authors did (no jargon, no equations).
+4. Clearly state the main result or improvement.
+5. End with a one-sentence intuitive takeaway starting with "👉 In short:" (or "👉 简而言之：" for Chinese).
+
+Constraints:
+- Avoid technical jargon unless absolutely necessary.
+- Do NOT use phrases like "this paper proposes a novel framework" without explanation.
+- The reader should understand the paper in 10 seconds.
+- Max 5 sentences for the TL;DR.
 
 Output EXACTLY in this structure:
 
 <ZH>
-TL;DR: [一句话总结]
+TL;DR: [此处输出符合上述5点的中文总结]
 
 SECTION: 研究方法
 [内容，若摘要信息不足则如实说明]
@@ -138,7 +167,7 @@ SECTION: 效果表现
 </ZH>
 
 <EN>
-TL;DR: [one sentence summary]
+TL;DR: [Output the English summary following the 5-point structure]
 
 SECTION: Research Methodology
 [content]
