@@ -1,3 +1,4 @@
+@import 'katex/dist/katex.min.css';
 :root {
   --background: #0a0a0a;
   --foreground: #ededed;

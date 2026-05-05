@@ -5,6 +5,7 @@ import { dbOps } from '@/lib/db';
 import { sendDailySummary } from '@/lib/email';
 import { revalidatePath } from 'next/cache';
 import { runAdjudicator } from '../../../../Adjudicator/index';
+import { extractHtml } from '@/model/extractors/html';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -61,7 +62,8 @@ export async function GET(request: Request) {
         console.log('Running Adjudicator Analysis...');
         let adjudicatorResult = null;
         try {
-            adjudicatorResult = await runAdjudicator(paper.title, paper.abstract, '');
+            const fullText = await extractHtml(paper.arxiv_id) || "";
+            adjudicatorResult = await runAdjudicator(paper.title, paper.abstract, fullText);
             if (adjudicatorResult) {
                 console.log('Adjudicator analysis completed successfully.');
             } else {

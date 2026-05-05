@@ -1,0 +1,5 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/arxiv-488704/arxiv-highlight-job:latest', '-f', 'Dockerfile.highlight', '.']
+images:
+  - 'gcr.io/arxiv-488704/arxiv-highlight-job:latest'

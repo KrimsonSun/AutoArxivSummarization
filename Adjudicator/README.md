@@ -20,8 +20,9 @@
 ### 2. 双子星模型解耦 (Schema vs PlainText)
 在之前迭代中，曾经发生过因为强制全量 JSON 输出保护，导致让模型额外输出“推荐短句”时遭到污染直接输出整坨 JSON 乱码的灾难。
 **终极解法：**我们使用了一个双层模型请求。
-*   `gemini-2.5-pro` (带 Schema 锁)：负责剥离学术外衣进行深层逻辑缺陷侦别。
-*   `plainTextModel` (无拘束)：负责为 Pinecone 搜索出的外援文献量身定做 **30字 以内的干练中文人类可读评价**（`recommendation_reason` 字段）。
+*   `gemini-3.1-pro-preview` (带 Schema 锁)：负责剥离学术外衣进行深层逻辑缺陷侦别。
+*   `gemini-3-flash-preview` (无拘束)：负责为 Pinecone 搜索出的外援文献量身定做 **30字 以内的干练中文人类可读评价**（`recommendation_reason` 字段）。
+*   这里选择`gemini-3-flash-preview`是因为它更便宜，而且我们不需要它进行复杂的逻辑推理，只需要它进行简单的文本生成。
 
 ### 3. 多端自适应分发
 Adjudicator 不仅把它的分析写入到了 Supabase 数据库的 `adjudicator_data` 字段供本地 `localhost:3000` 及云端 Cloud Run 调用，其数据流现在还被深度埋点到了：

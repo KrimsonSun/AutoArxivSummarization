@@ -1,5 +1,6 @@
 import { dbOps } from './src/lib/db';
 import { runAdjudicator } from './Adjudicator/index';
+import { extractHtml } from './src/model/extractors/html';
 
 async function main() {
   const paper = await dbOps.getLatestPaper();
@@ -9,7 +10,8 @@ async function main() {
   }
   console.log("Running Adjudicator on: " + paper.title);
   try {
-    const result = await runAdjudicator(paper.title, paper.abstract, "");
+    const fullText = await extractHtml(paper.arxiv_id) || "";
+    const result = await runAdjudicator(paper.title, paper.abstract, fullText);
     if(result) {
       await dbOps.savePaper({...paper, adjudicator_data: JSON.stringify(result)});
       console.log("Successfully saved adjudicator_data to SQLite.");

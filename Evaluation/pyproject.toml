@@ -1,0 +1,41 @@
+[project]
+name = "summarization-evaluation"
+version = "0.1.0"
+description = "Coverage + Hallucination evaluator for AutoArxiv summaries"
+requires-python = ">=3.11"
+dependencies = [
+    "openai>=1.54.0",
+    "pydantic>=2.9.0",
+    "pydantic-settings>=2.6.0",
+    "python-dotenv>=1.0.1",
+    "pdfplumber>=0.11.4",
+    "rank-bm25>=0.2.2",
+    "tenacity>=9.0.0",
+    "structlog>=24.4.0",
+    "pyyaml>=6.0.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-mock>=3.14.0",
+]
+embedding = [
+    "sentence-transformers>=3.0.0",  # optional: only if you switch retrieval to dense
+]
+
+[project.scripts]
+arxiv-evaluate = "src.cli:main"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]

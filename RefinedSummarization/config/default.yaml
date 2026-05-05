@@ -1,0 +1,71 @@
+# =============================================================================
+# Default pipeline configuration.
+#
+# Strategy: 100% open-source models routed via OpenRouter (one API key, three
+# heterogeneous LLMs). Set OPENAI_BASE_URL=https://openrouter.ai/api/v1 and
+# OPENAI_API_KEY=sk-or-v1-... in .env, then everything below "just works".
+#
+# The OpenAI SDK speaks the OpenRouter API (it's OpenAI-compatible), which
+# means we use `provider: openai` for ALL three initial agents — the
+# "heterogeneity" comes from picking three different open-source MODELS
+# behind that single OpenRouter endpoint.
+# =============================================================================
+
+pipeline:
+  # 3 heterogeneous initial summarizers (HANDOFF §2.2).
+  # Picked across three independent organisations to maximise stylistic /
+  # reasoning-style diversity in the drafts:
+  #   - Meta (Llama 3.3 70B)
+  #   - Alibaba (Qwen 2.5 72B)
+  #   - DeepSeek (DeepSeek V3)
+  initial_agents:
+    - id: agent_llama
+      provider: openai
+      model: meta-llama/llama-3.3-70b-instruct
+      temperature: 0.7
+    - id: agent_qwen
+      provider: openai
+      model: qwen/qwen-2.5-72b-instruct
+      temperature: 0.7
+    - id: agent_deepseek
+      provider: openai
+      model: deepseek/deepseek-chat
+      temperature: 0.7
+
+  # Verification mode — HANDOFF §2.3 default = single_judge.
+  # The mutual_peer_review code is also present (src/agents/peer_review.py)
+  # for future ablation experiments; flip this to "mutual_peer_review" to
+  # enable 3-reviewer mutual evaluation.
+  verification_mode: single_judge
+
+  # Used by verifier (single_judge mode), retriever, and refiner.
+  # Llama 3.3 70B has 128k context which is needed for the refiner's
+  # "3 drafts + N issues + evidence + full paper" payload.
+  pipeline_llm:
+    provider: openai
+    model: meta-llama/llama-3.3-70b-instruct
+    temperature: 0.3
+
+  # Paragraph short-summarizer (Stage 0b). Cheap small model — only needs
+  # to compress paragraphs to ~200 chars, no reasoning required.
+  paragraph_summarizer:
+    provider: openai
+    model: meta-llama/llama-3.1-8b-instruct
+    temperature: 0.0
+    target_length: 200
+
+constraints:
+  max_issues: 12
+  max_evidence_per_issue: 3
+  max_paragraphs_in_refiner_context: 50
+  llm_timeout_seconds: 120
+  max_retries: 2
+
+output:
+  json_output_dir: outputs/json
+  markdown_output_dir: outputs/markdown
+  emit_markdown: true
+
+logging:
+  level: INFO
+  json_logs: true

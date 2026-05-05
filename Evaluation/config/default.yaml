@@ -1,0 +1,34 @@
+# Evaluator configuration. All LLM calls route through OPENAI_BASE_URL —
+# default is OpenRouter, but any OpenAI-compatible endpoint works.
+
+# Model used for Step 1 (claim extraction). A medium model is enough.
+extractor:
+  provider: openai
+  model: meta-llama/llama-3.3-70b-instruct
+  temperature: 0.0
+  max_tokens: 4096
+
+# Model used for Step 3 (NLI verification). Use a strong reasoner here —
+# this is the metric-critical step.
+verifier:
+  provider: openai
+  model: meta-llama/llama-3.3-70b-instruct
+  temperature: 0.0
+  max_tokens: 1024
+
+# Step 2 retrieval settings.
+retrieval:
+  method: bm25            # bm25 | embedding (embedding requires extra install)
+  top_k: 5                # how many paper paragraphs to feed the verifier per claim
+
+# Verdict aggregation weights (tunable).
+scoring:
+  # An evidence_coverage variant that gives partial credit for "Partial":
+  partial_credit: 0.5
+  # If true, "Unsupported" without contradiction also counts toward hallucination.
+  # If false, only "Contradicted" counts as hallucination.
+  unsupported_is_hallucination: true
+
+logging:
+  level: INFO
+  json_logs: false
