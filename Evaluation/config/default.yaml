@@ -6,7 +6,7 @@ extractor:
   provider: openai
   model: meta-llama/llama-3.3-70b-instruct
   temperature: 0.0
-  max_tokens: 4096
+  max_tokens: 16384  # bumped from 4096 to handle long summaries (>30 atomic claims) without truncation
 
 # Model used for Step 3 (NLI verification). Use a strong reasoner here —
 # this is the metric-critical step.

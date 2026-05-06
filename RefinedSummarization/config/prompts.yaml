@@ -41,19 +41,35 @@ verifier:
     - factual_error: A claim contradicts the paper.
     - missing_info: A piece of information critical to understanding the paper
                     is absent from ALL three summaries.
-    - inconsistency: The summaries contradict each other on the same point.
+    - coverage_gap: ★ NEW — A SPECIFIC fact (number, dataset name, method
+                    component, named baseline, quantitative finding) appears
+                    in 1 OR 2 of the 3 drafts AND is supported by paper
+                    evidence, but not in all three. This is the most
+                    important issue type for a UNION-biased refiner: it
+                    tells the refiner "preserve this draft-only fact, do
+                    not merge it away." Prioritise raising these — they
+                    are the dominant source of recall regression.
+    - inconsistency: The summaries contradict each other on the same FACT
+                    (different numbers / names for the same thing). This
+                    requires a "drop the wrong one" verdict, not a
+                    "drop both" merge.
     - unsupported_claim: A claim has no `evidence_refs` and is non-obvious.
     - ambiguity: A claim is too vague to verify.
 
+    How to decide between coverage_gap, missing_info, and inconsistency:
+    -  Fact present in 0/3 drafts but in paper       → missing_info
+    -  Fact present in 1/3 or 2/3 drafts (consistent) → coverage_gap
+    -  Fact present in 2+ drafts but they disagree    → inconsistency
+
     Rules:
     1. Output AT MOST 12 issues, sorted by severity (most critical first).
+       Coverage_gap and missing_info issues should be prioritised because
+       they directly drive recall improvements.
     2. Each issue must specify which summary/summaries it affects.
     3. Optionally suggest paragraph IDs the retriever should look at.
     4. Do NOT raise stylistic issues; only content issues.
-    5. If a claim is correctly supported by 1 of 3 summaries but missing from
-       the others, that's `inconsistency`, not `missing_info`.
-    6. Issue IDs MUST be sequential: I1, I2, I3, ... in the order you list them.
-    7. Do NOT populate `raised_by` — that field is reserved for orchestrator
+    5. Issue IDs MUST be sequential: I1, I2, I3, ... in the order you list them.
+    6. Do NOT populate `raised_by` — that field is reserved for orchestrator
        use in mutual_peer_review mode and should be left empty here.
 
     Return JSON shaped {"issues": [Issue, ...]}.
@@ -107,16 +123,49 @@ refiner:
     You are a senior researcher producing a FINAL, definitive summary of an
     academic paper. You have been given:
     1. Three draft summaries from different LLMs.
-    2. A list of issues found by a verifier.
+    2. A list of issues found by a verifier (including coverage_gap issues
+       flagging facts that appear in only 1–2 of the 3 drafts).
     3. Evidence paragraphs that resolve each issue.
 
+    ════════════════════════════════════════════════════════════════════════
+    CORE PRINCIPLE — UNION, NOT INTERSECTION
+    ════════════════════════════════════════════════════════════════════════
+    Multi-agent debate yields three diverse drafts so that each agent's
+    blind spots are covered by the others. Your job is to PRESERVE the
+    UNION of specific facts across drafts, not to merge them down to a
+    common abstract phrasing. If only ONE of the three drafts mentions a
+    specific number, dataset, method name, or quantitative finding, and
+    that fact is supported by paper evidence, you MUST keep it.
+
+    Common failure modes to avoid:
+    -  Replacing "achieves 28.4 BLEU on WMT 2014 EN-DE" with "achieves
+       state-of-the-art" because only one draft had the specific number.
+    -  Dropping a method component (e.g. "rotary positional embedding")
+       because two drafts didn't mention it.
+    -  Smoothing three different specific claims into one generic
+       paraphrase to "merge" them.
+
+    Concretely, when integrating drafts:
+    -  Specific numerics (BLEU/F1/accuracy/dataset sizes) → ALWAYS keep
+       if at least one draft mentions them and evidence supports them.
+    -  Named components, datasets, baselines → ALWAYS keep if at least
+       one draft mentions them and evidence supports them.
+    -  Concrete experimental findings → ALWAYS keep if at least one
+       draft mentions them and evidence supports them.
+    -  Abstract framing language → take the clearest single phrasing,
+       not a vague conjunction.
+
     Your job is to produce ONE final summary that:
-    - Merges the strongest content from all three drafts.
-    - Corrects every factual_error using the cited evidence.
-    - Fills every missing_info gap using the cited evidence.
-    - Resolves every inconsistency by deferring to the evidence.
-    - Replaces every unsupported_claim with either a supported version or removal.
-    - Sharpens every ambiguity into a precise statement.
+    -  Takes the UNION of specific facts from all three drafts (not the
+       intersection of their phrasings).
+    -  Corrects every factual_error using the cited evidence.
+    -  Fills every missing_info AND coverage_gap by adding the fact, with
+       evidence_refs pointing to the supporting paragraph.
+    -  Resolves every inconsistency by deferring to the evidence (drop
+       the wrong number, keep the right one).
+    -  Replaces every unsupported_claim with either a supported version
+       or removal.
+    -  Sharpens every ambiguity into a precise statement using evidence.
 
     Rules:
     1. Output JSON conforming to the FinalSummary schema (without `metadata` —
@@ -125,7 +174,11 @@ refiner:
     3. Do NOT introduce claims that aren't in the drafts AND aren't in the
        evidence — no new hallucination.
     4. Use Markdown formatting in string fields.
-    5. Return JSON of shape:
+    5. PREFER specificity over abstraction: "achieves 28.4 BLEU" beats
+       "achieves SOTA"; "uses 6 encoder layers" beats "uses multiple layers".
+    6. Aim for higher fact density: each non-trivial sentence should add
+       a specific verifiable fact, not just rephrase a thematic statement.
+    7. Return JSON of shape:
        {
          "tldr": "...",
          "core_idea": "...",

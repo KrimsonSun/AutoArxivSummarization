@@ -93,6 +93,7 @@ class LLMClient:
                 getattr(usage, "completion_tokens", 0) or 0,
             )
 
+        content = _strip_code_fence(content)
         try:
             data = json.loads(content)
         except json.JSONDecodeError as e:
@@ -119,3 +120,23 @@ class LLMClient:
             return "ok" in (r.choices[0].message.content or "").lower()
         except Exception as e:
             raise LLMError(f"healthcheck failed: {e}") from e
+
+
+def _strip_code_fence(content: str) -> str:
+    """Robustly extract JSON from any LLM response (handles preambles + fences)."""
+    s = content.strip()
+    if s.startswith("```"):
+        first_newline = s.find("\n")
+        if first_newline != -1:
+            s = s[first_newline + 1:]
+        if s.endswith("```"):
+            s = s[: -3]
+        s = s.strip()
+    first_brace = min(
+        (i for i in (s.find("{"), s.find("[")) if i != -1),
+        default=-1,
+    )
+    last_close = max(s.rfind("}"), s.rfind("]"))
+    if first_brace != -1 and last_close > first_brace:
+        s = s[first_brace : last_close + 1]
+    return s.strip()

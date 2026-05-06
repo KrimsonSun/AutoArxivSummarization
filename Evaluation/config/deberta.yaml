@@ -1,0 +1,42 @@
+# DeBERTa-NLI evaluation config.
+# - Step 1 (claim extraction): still uses LLM (no good local alternative).
+# - Step 3 (verification): uses local DeBERTa-v3-base-mnli-fever-anli classifier.
+# - Step 5–6 (paper-side recall + F1): enabled, also uses LLM for the
+#   recall checker (the recall task is more nuanced than 3-class NLI).
+#
+# This is the "fully decoupled judge" setup — DeBERTa wasn't trained on
+# any LLM-generated text, so there's no self-favoring bias on the
+# entailment verdict.
+
+extractor:
+  provider: openai
+  model: meta-llama/llama-3.3-70b-instruct
+  temperature: 0.0
+  max_tokens: 16384
+
+verifier:
+  # Used only when verifier_kind=llm. Kept here as fallback target.
+  provider: openai
+  model: meta-llama/llama-3.3-70b-instruct
+  temperature: 0.0
+  max_tokens: 1024
+
+retrieval:
+  method: bm25
+  top_k: 5
+
+scoring:
+  partial_credit: 0.5
+  unsupported_is_hallucination: true
+  strict_mode: true
+  strict_verifier_prompt: false  # ignored in deberta_nli mode anyway
+  verifier_kind: deberta_nli     # ← DeBERTa instead of LLM-as-judge
+  nli_model: MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli
+  # Thresholds tuned for FActScore-style strictness:
+  nli_entailment_supported: 0.70
+  nli_entailment_partial: 0.30
+  nli_contradiction_strong: 0.50
+
+logging:
+  level: INFO
+  json_logs: false

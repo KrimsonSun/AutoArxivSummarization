@@ -95,36 +95,115 @@ class VerdictCounts(BaseModel):
         return self.supported + self.partial + self.unsupported + self.contradicted
 
 
+class PaperClaim(BaseModel):
+    """An atomic claim extracted from the source PAPER (not the summary).
+
+    Used for the strict-mode recall metric: for each paper claim we ask
+    "did the summary cover this?". Covered/total = recall.
+    """
+
+    id: str = Field(pattern=r"^PC\d+$")
+    text: str
+    source_paragraph_id: str | None = Field(
+        default=None,
+        description="Which paragraph the claim was extracted from, e.g. 'P12'.",
+    )
+
+
+class PaperClaimList(BaseModel):
+    """LLM-facing wrapper for paper-side claim extraction."""
+
+    claims: list[PaperClaim] = Field(default_factory=list)
+
+
+class CoverageVerdict(str, Enum):
+    """Whether a paper claim was covered by the summary."""
+
+    COVERED = "Covered"
+    PARTIAL = "Partial"
+    NOT_COVERED = "NotCovered"
+
+
+class PaperClaimCoverage(BaseModel):
+    """Per-paper-claim recall verdict."""
+
+    claim_id: str = Field(pattern=r"^PC\d+$")
+    verdict: CoverageVerdict
+    rationale: str = ""
+
+
+class PaperCoverageList(BaseModel):
+    """LLM-facing wrapper for the recall checker."""
+
+    items: list[PaperClaimCoverage] = Field(default_factory=list)
+
+
+class CoverageCounts(BaseModel):
+    covered: int = 0
+    partial: int = 0
+    not_covered: int = 0
+
+    @property
+    def total(self) -> int:
+        return self.covered + self.partial + self.not_covered
+
+
 class EvaluationReport(BaseModel):
-    """Final deliverable for one (summary, paper) pair."""
+    """Final deliverable for one (summary, paper) pair.
+
+    Loose-mode fields (always populated):
+      - total_claims, counts, evidence_coverage, hallucination_rate, per_claim
+
+    Strict-mode fields (only populated when strict_mode=True in the config):
+      - paper_total_claims, paper_coverage_counts, paper_recall, f1, per_paper_claim
+    """
 
     arxiv_id: str | None = None
     title: str = ""
     paper_paragraph_count: int
 
-    # Step 1–4 trail
+    # ----- Loose mode (summary-side precision)
     total_claims: int
     counts: VerdictCounts
-
-    # Headline metrics — these are what the paper reports.
     evidence_coverage: float = Field(
         description=(
-            "Fraction of claims supported by the paper. With config "
-            "scoring.partial_credit=p, computed as "
-            "(supported + p × partial) / total_claims. Higher is better."
+            "Loose precision: supported_summary_claims / total_summary_claims. "
+            "With scoring.partial_credit=p: (supported + p × partial) / total. "
+            "Penalises hallucinations but NOT under-coverage — a summary with "
+            "5 trivial claims can score 1.0. Pair with `paper_recall` to "
+            "guard against that."
         ),
     )
     hallucination_rate: float = Field(
         description=(
-            "Fraction of claims not grounded in the paper. By default = "
-            "(unsupported + contradicted) / total_claims. If "
-            "scoring.unsupported_is_hallucination=false, only "
-            "contradicted / total_claims. Lower is better."
+            "Fraction of summary claims not grounded in the paper. "
+            "(unsupported + contradicted) / total_summary_claims. "
+            "Lower is better."
         ),
     )
-
-    # Per-claim trail (kept for paper appendix / debugging)
     per_claim: list[ClaimVerification] = Field(default_factory=list)
+
+    # ----- Strict mode (paper-side recall + F1) — only filled when strict_mode=True
+    paper_total_claims: int = 0
+    paper_coverage_counts: CoverageCounts = Field(default_factory=CoverageCounts)
+    paper_recall: float = Field(
+        default=0.0,
+        description=(
+            "Strict recall: fraction of atomic claims in the PAPER that are "
+            "covered by the summary. "
+            "(covered + partial_credit × partial) / total_paper_claims. "
+            "Penalises under-coverage. Higher is better."
+        ),
+    )
+    f1: float = Field(
+        default=0.0,
+        description=(
+            "Harmonic mean of evidence_coverage (precision) and paper_recall. "
+            "This is the headline strict-mode metric. Higher is better."
+        ),
+    )
+    per_paper_claim: list[PaperClaimCoverage] = Field(default_factory=list)
+    strict_mode: bool = False
 
     # Provenance — important for reproducibility in the paper.
     eval_config: dict = Field(

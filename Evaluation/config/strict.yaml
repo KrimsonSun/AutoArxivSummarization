@@ -1,0 +1,30 @@
+# Strict evaluation config — adds paper-side recall + F1 + stricter verifier.
+# Use via: python -m src.cli --config config/strict.yaml ...
+
+extractor:
+  provider: openai
+  model: meta-llama/llama-3.3-70b-instruct
+  temperature: 0.0
+  # Long summaries (RefinedSummarization Ours JSON, B5 structured) can produce
+  # 30+ atomic claims × ~80 tokens each. 4k truncates → schema fail. Use 16k.
+  max_tokens: 16384
+
+verifier:
+  provider: openai
+  model: meta-llama/llama-3.3-70b-instruct
+  temperature: 0.0
+  max_tokens: 1024
+
+retrieval:
+  method: bm25
+  top_k: 5
+
+scoring:
+  partial_credit: 0.5
+  unsupported_is_hallucination: true
+  strict_mode: true              # ← enables paper-side recall + F1
+  strict_verifier_prompt: true   # ← requires specific facts to count as Supported
+
+logging:
+  level: INFO
+  json_logs: false

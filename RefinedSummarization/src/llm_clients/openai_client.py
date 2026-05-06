@@ -104,6 +104,10 @@ class OpenAIClient(LLMClient):
                 completion=getattr(usage, "completion_tokens", 0) or 0,
             )
 
+        # Open-source models (Llama / Qwen / DeepSeek via OpenRouter) often
+        # wrap JSON in markdown code fences (```json ... ``` or ``` ... ```)
+        # despite response_format=json_object. Strip them before parsing.
+        content = _strip_code_fence(content)
         try:
             data = json.loads(content)
         except json.JSONDecodeError as e:
@@ -131,3 +135,36 @@ class OpenAIClient(LLMClient):
             return "ok" in text
         except Exception as e:
             raise LLMError(f"OpenAI healthcheck failed: {e}") from e
+
+
+def _strip_code_fence(content: str) -> str:
+    """Robustly extract the JSON payload from an LLM response.
+
+    Open-source models on OpenRouter occasionally emit:
+    1. Plain JSON                       → return unchanged
+    2. ```json\n{...}\n```              → strip the fence
+    3. "Here is the JSON: ```{...}```"  → strip preamble + fence
+    4. "Sure! {...}"                    → strip preamble
+
+    Strategy: find the first '{' (or '[') and the matching last '}' (or ']'),
+    return the substring. This is the most robust thing short of a real
+    streaming JSON parser.
+    """
+    s = content.strip()
+    # Strip code fences if present
+    if s.startswith("```"):
+        first_newline = s.find("\n")
+        if first_newline != -1:
+            s = s[first_newline + 1:]
+        if s.endswith("```"):
+            s = s[: -3]
+        s = s.strip()
+    # If the body still has preamble text, slice out the JSON region.
+    first_brace = min(
+        (i for i in (s.find("{"), s.find("[")) if i != -1),
+        default=-1,
+    )
+    last_close = max(s.rfind("}"), s.rfind("]"))
+    if first_brace != -1 and last_close > first_brace:
+        s = s[first_brace : last_close + 1]
+    return s.strip()
