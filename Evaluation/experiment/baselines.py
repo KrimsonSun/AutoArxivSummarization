@@ -33,6 +33,13 @@ BASELINES: list[BaselineSpec] = [
     BaselineSpec("B3_deepseek_naive",  "deepseek/deepseek-chat",            "naive"),
     BaselineSpec("B4_llama8b_naive",   "meta-llama/llama-3.1-8b-instruct",  "naive"),
     BaselineSpec("B5_llama_structured","meta-llama/llama-3.3-70b-instruct", "structured"),
+    # ----- B6: ablation control for "is the v2 win prompt-engineering or architecture?" -----
+    # Same Llama-70B backbone as B1/B5 but with the v2 union-bias prompt directly
+    # applied at single-call summarisation time. If B6 ≈ Ours_v2, then the v2
+    # gain is prompt engineering, not multi-agent architecture. If B6 << Ours_v2,
+    # then the 3-LLM debate matters (v2 refiner prompt is necessary but not
+    # sufficient).
+    BaselineSpec("B6_llama_v2prompt",  "meta-llama/llama-3.3-70b-instruct", "v2_inspired"),
 ]
 
 
@@ -55,9 +62,51 @@ _STRUCTURED_SYSTEM = (
     "## Limitations\n(bulleted list of 2–4 limitations stated by the authors)"
 )
 
+# B6: single-LLM ablation control adapted from the v2 refiner prompt
+# (RefinedSummarization/config/prompts.yaml).
+# Drop the "merge from 3 drafts" framing (no drafts in single-call setting),
+# keep every other UNION-bias / specificity-over-abstraction directive.
+# This is the prompt-engineering control: same backbone as B1/B5, but with
+# union-bias instructions explicitly written into the prompt.
+_V2_INSPIRED_SYSTEM = (
+    "You are a senior researcher producing a comprehensive structured "
+    "summary of an academic paper. Your goal is to PRESERVE every "
+    "specific fact (number, dataset, method name, quantitative finding) "
+    "from the paper.\n\n"
+    "Common failure modes to avoid:\n"
+    "-  Replacing \"achieves 28.4 BLEU on WMT 2014 EN-DE\" with \"achieves "
+    "state-of-the-art\".\n"
+    "-  Dropping a method component because it's a detail.\n"
+    "-  Smoothing specific claims into generic paraphrases.\n\n"
+    "Concretely:\n"
+    "-  Specific numerics (BLEU/F1/accuracy/dataset sizes) → ALWAYS keep.\n"
+    "-  Named components, datasets, baselines → ALWAYS keep.\n"
+    "-  Concrete experimental findings → ALWAYS keep.\n"
+    "-  Stated limitations → ALWAYS keep.\n"
+    "-  Abstract framing → use the clearest single phrasing.\n\n"
+    "Rules:\n"
+    "1. PREFER specificity over abstraction: \"achieves 28.4 BLEU\" beats "
+    "\"achieves SOTA\"; \"uses 6 encoder layers\" beats \"uses multiple "
+    "layers\".\n"
+    "2. Aim for higher fact density: each non-trivial sentence should add "
+    "a specific verifiable fact.\n"
+    "3. Do NOT introduce claims that aren't in the paper.\n"
+    "4. Use Markdown formatting. Use 5 sections:\n\n"
+    "## TL;DR\n(one paragraph, ≤ 5 sentences, with specific numbers/names)\n\n"
+    "## Key Contributions\n(bulleted list of 3–5 atomic contributions)\n\n"
+    "## Method\n(how the system works — 2–3 paragraphs)\n\n"
+    "## Experiments\n(setup + key quantitative findings — 2–3 paragraphs, "
+    "include all major numerical results)\n\n"
+    "## Limitations\n(bulleted list of 2–4 limitations stated by authors)"
+)
+
 
 def system_prompt_for(spec: BaselineSpec) -> str:
-    return _STRUCTURED_SYSTEM if spec.prompt_kind == "structured" else _NAIVE_SYSTEM
+    if spec.prompt_kind == "v2_inspired":
+        return _V2_INSPIRED_SYSTEM
+    if spec.prompt_kind == "structured":
+        return _STRUCTURED_SYSTEM
+    return _NAIVE_SYSTEM
 
 
 # ------------------------------------------------------- the actual call

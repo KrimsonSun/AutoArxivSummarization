@@ -243,16 +243,65 @@ The current paper already includes (after the v2 review-pass):
 -  **Atomic claim extractor is the same Llama-70B used in the
    pipeline.** Section 9 (ii) discloses; a definitive control would be
    to use a non-Llama claim extractor.
--  **The v2 architecture fixes (M1 union refiner, M2 coverage\_gap
-   issue type) are implemented but UNTESTED.** §7 says so plainly.
-   Independent ongoing validation is referenced but not reported.
 -  **No human-evaluator agreement study.** Both judges are LLMs (or
    LLM-trained NLI); a human spot-check on $n=20$ verdicts would
    meaningfully strengthen the paper.
--  **No ablation on Ours.** We don't show what each component
-   (debate / verifier / RAG / refiner) contributes individually.
-   This would isolate which stage is responsible for the regression
-   beyond what M1's case studies suggest.
+-  **No ablation on Ours pipeline components.** We don't show what
+   each component (debate / verifier / RAG / refiner) contributes
+   individually. This would isolate which stage is responsible for
+   the regression beyond what M1's case studies suggest.
+
+### 6a. New since v2 small-scale validation (READ THIS)
+
+After PR #2 was opened, the previous chat ran a 7-paper small-scale
+validation of the v2 architecture fixes (M1 union refiner prompt + M2
+COVERAGE\_GAP issue type) and found a substantively positive result:
+
+| Mode | Mean ΔF1 (v2 - v1, n=6) | 95% CI | Cohen's $d$ |
+|---|---:|---|---:|
+| Strict-LLM | $+0.123$ | $[+0.034, +0.217]$ | $+0.97$ |
+| DeBERTa-NLI | $+0.108$ | $[+0.050, +0.159]$ | $+1.49$ |
+
+The gap to B2 Qwen-72B-naive collapses:
+
+| Mode | v1 ΔF1(Ours - B2) | v2 ΔF1(Ours\_v2 - B2) |
+|---|---:|---:|
+| Strict-LLM | $-0.124$ | $-0.001$ (CI $[-0.146, +0.146]$) |
+| DeBERTa-NLI | $-0.080$ | $+0.028$ (CI $[-0.070, +0.118]$) |
+
+So v2 is statistically tied with the strongest baseline on these 7
+papers.
+
+**However**, this small-scale result raises a confound that the paper
+must address before submission:
+
+> Does v2 win because the multi-agent debate ARCHITECTURE finally
+> works (only multi-agent + good prompt outperforms baselines), or
+> because PROMPT ENGINEERING alone closes the gap (any single LLM
+> with the v2 union-bias prompt would do as well)?
+
+The current data cannot distinguish these. The disambiguating
+experiment is a 2×2 ablation:
+
+|                     | naive prompt | v2 union-bias prompt |
+|---------------------|---|---|
+| **single LLM** | B1, B5 (existing) | **B6 (NEW — to be run)** |
+| **3-LLM debate** | v1 Ours (existing) | v2 Ours\_v2 (existing) |
+
+B6 is scaffolded in `Evaluation/experiment/baselines.py` but has not
+been run yet. The continuation handoff
+(`CONTINUATION_HANDOFF.md` at the worktree root) documents how to run
+it.
+
+If $F_1(B6) \approx F_1(\textsc{Ours\_v2})$, the paper's contribution
+collapses to "good prompts beat default prompts" and the multi-agent
+architecture is decoration. Reviewers will spot this confound — please
+flag in your critique whether the paper as currently written
+adequately defends against it (it does not yet; Section 7 is honest
+about v2 being "implemented but not yet validated", which is now stale).
+
+The continuation chat will run B6 and update Section 7 + Section 8
+accordingly.
 
 ## 7. Things we're worried about (please critique these)
 
@@ -293,7 +342,16 @@ The current paper already includes (after the v2 review-pass):
 
 ## 8. Specific evaluation prompts for the reviewer
 
-If you (the reviewing agent) are short on time, focus on these:
+If you (the reviewing agent) are short on time, focus on these. Item 0
+is the highest-priority ask given the v2 small-scale result:
+
+0. **Architecture vs.\ prompt engineering disambiguation (NEW).** Given
+   the v2 small-scale result in §6a, what additional control
+   experiments must the paper run before submission to defend
+   against the "v2 win is just better prompting" critique? Specifically,
+   what should B6 (single-LLM with v2-style prompt) need to look like
+   for the multi-agent claim to survive? At what threshold does the
+   paper become "the v2 prompt is the entire contribution"?
 
 1. **Statistical**: Do the bootstrap CIs and Cohen's $d$ values
    actually support the conclusions in §5 and §6? In particular,
