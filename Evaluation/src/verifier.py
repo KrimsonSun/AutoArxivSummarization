@@ -16,7 +16,7 @@ from src.llm_client import LLMClient, LLMError
 from src.schemas import Claim, ClaimVerification, EvidenceChunk, Verdict
 
 
-_SYSTEM = """You verify whether evidence from an academic paper supports a specific claim.
+_SYSTEM_LOOSE = """You verify whether evidence from an academic paper supports a specific claim.
 
 You will be shown:
   • A claim (one atomic factual statement).
@@ -43,9 +43,43 @@ Rules:
    "evidence_paragraphs": ["P3", "P5"]}"""
 
 
+_SYSTEM_STRICT = """You verify whether evidence from an academic paper SPECIFICALLY supports a claim.
+
+This is a STRICT verification regime: vague restatements of the paper's
+themes do NOT count as Supported. Only specific, verifiable matches do.
+
+Verdicts:
+
+  Supported     — The evidence contains the claim's SPECIFIC facts:
+                  • If the claim mentions a number/score (e.g. "28.4 BLEU"),
+                    the evidence must contain that exact number (or near-paraphrase).
+                  • If the claim names a method/dataset/architecture, the
+                    evidence must mention it by name.
+                  • Generic claims like "the paper proposes a new method" or
+                    "achieves state-of-the-art" do NOT qualify as Supported
+                    unless the evidence has the specific corresponding facts.
+  Partial       — The claim has some support but is too vague OR the evidence
+                  only partially matches the specifics. Most generic
+                  claims land here.
+  Unsupported   — The evidence does not address the claim at all.
+  Contradicted  — The evidence directly contradicts the claim.
+
+Rules:
+1. Bias toward Partial when the claim is vague — generic restatements should
+   NOT score as Supported.
+2. Numbers / names / dataset identifiers MUST match. "Achieves 28.4 BLEU"
+   ≠ "Achieves high BLEU". The latter is Partial at best.
+3. Cite paragraph IDs that drove your verdict in `evidence_paragraphs`.
+4. If Supported / Partial / Contradicted, `evidence_paragraphs` MUST be non-empty.
+5. Output JSON: {"claim_id": "...", "verdict": "...", "rationale": "...",
+   "evidence_paragraphs": ["P3", "P5"]}"""
+
+
 class ClaimVerifier:
-    def __init__(self, client: LLMClient):
+    def __init__(self, client: LLMClient, strict: bool = False):
         self.client = client
+        self.strict = strict
+        self._system = _SYSTEM_STRICT if strict else _SYSTEM_LOOSE
 
     async def run(
         self,
@@ -64,7 +98,7 @@ class ClaimVerifier:
         user = _render_user(claim, evidence)
         try:
             verdict = await self.client.generate(
-                system_prompt=_SYSTEM,
+                system_prompt=self._system,
                 user_prompt=user,
                 response_schema=ClaimVerification,
             )

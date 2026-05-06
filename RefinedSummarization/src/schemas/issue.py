@@ -12,6 +12,13 @@ class IssueType(str, Enum):
     INCONSISTENCY = "inconsistency"
     UNSUPPORTED_CLAIM = "unsupported_claim"
     AMBIGUITY = "ambiguity"
+    # v2: coverage_gap fires when a specific fact appears in only 1–2 of the
+    # 3 drafts AND is supported by paper evidence. The refiner is then
+    # required to PRESERVE that fact, not merge it away. This is the
+    # primary fix for the v1 "intersection bias" failure mode where
+    # specific facts (numbers / dataset names / method components) were
+    # silently dropped during refinement.
+    COVERAGE_GAP = "coverage_gap"
 
 
 class Issue(BaseModel):

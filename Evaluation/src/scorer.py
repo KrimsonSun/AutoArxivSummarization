@@ -1,21 +1,24 @@
 """Step 4 — Aggregate verdicts into the headline metrics.
 
-Defines two metrics per the user's spec:
+Loose mode (always computed):
+  Evidence Coverage = (# Supported + partial_credit × # Partial) / total_summary_claims
+  Hallucination Rate = (# Unsupported + # Contradicted) / total_summary_claims
 
-  Evidence Coverage = (# Supported + partial_credit × # Partial) / total
-  Hallucination Rate = (# Unsupported + # Contradicted) / total
-                       (or only # Contradicted if config flag is off)
-
-Both are in [0, 1]. Higher coverage / lower hallucination = better summary.
+Strict mode (when scoring.strict_mode=True):
+  Paper Recall = (# Covered + partial_credit × # Partial) / total_paper_claims
+  F1 = 2 × precision × recall / (precision + recall)
 """
 from __future__ import annotations
 
 from src.config_loader import ScoringSpec
 from src.schemas import (
     ClaimVerification,
+    CoverageCounts,
+    CoverageVerdict,
     EvaluationReport,
-    VerdictCounts,
+    PaperClaimCoverage,
     Verdict,
+    VerdictCounts,
 )
 
 
@@ -23,7 +26,7 @@ def score(
     verifications: list[ClaimVerification],
     spec: ScoringSpec,
 ) -> tuple[VerdictCounts, float, float]:
-    """Returns (counts, evidence_coverage, hallucination_rate)."""
+    """Loose-mode score — summary-side precision + hallucination."""
     counts = VerdictCounts()
     for v in verifications:
         if v.verdict == Verdict.SUPPORTED:
@@ -41,13 +44,37 @@ def score(
     evidence_coverage = (
         counts.supported + spec.partial_credit * counts.partial
     ) / total
-
     if spec.unsupported_is_hallucination:
         hallucination = (counts.unsupported + counts.contradicted) / total
     else:
         hallucination = counts.contradicted / total
-
     return counts, evidence_coverage, hallucination
+
+
+def score_recall(
+    coverages: list[PaperClaimCoverage],
+    spec: ScoringSpec,
+) -> tuple[CoverageCounts, float]:
+    """Strict-mode score — paper-side recall."""
+    counts = CoverageCounts()
+    for c in coverages:
+        if c.verdict == CoverageVerdict.COVERED:
+            counts.covered += 1
+        elif c.verdict == CoverageVerdict.PARTIAL:
+            counts.partial += 1
+        elif c.verdict == CoverageVerdict.NOT_COVERED:
+            counts.not_covered += 1
+    total = counts.total
+    if total == 0:
+        return counts, 0.0
+    recall = (counts.covered + spec.partial_credit * counts.partial) / total
+    return counts, recall
+
+
+def f1_of(precision: float, recall: float) -> float:
+    if precision + recall <= 0:
+        return 0.0
+    return 2 * precision * recall / (precision + recall)
 
 
 def assemble_report(
@@ -60,6 +87,13 @@ def assemble_report(
     hallucination: float,
     config_snapshot: dict,
     timestamp: str,
+    # --- strict mode (optional) ---
+    paper_total_claims: int = 0,
+    paper_coverage_counts: CoverageCounts | None = None,
+    paper_recall: float = 0.0,
+    f1: float = 0.0,
+    per_paper_claim: list[PaperClaimCoverage] | None = None,
+    strict_mode: bool = False,
 ) -> EvaluationReport:
     return EvaluationReport(
         arxiv_id=arxiv_id,
@@ -70,6 +104,12 @@ def assemble_report(
         evidence_coverage=coverage,
         hallucination_rate=hallucination,
         per_claim=verifications,
+        paper_total_claims=paper_total_claims,
+        paper_coverage_counts=paper_coverage_counts or CoverageCounts(),
+        paper_recall=paper_recall,
+        f1=f1,
+        per_paper_claim=per_paper_claim or [],
+        strict_mode=strict_mode,
         eval_config=config_snapshot,
         timestamp=timestamp,
     )

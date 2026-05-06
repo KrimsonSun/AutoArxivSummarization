@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
-from src.agents._prompts import render
+from src.agents._prompts import render, schema_example_block
 from src.llm_clients.base import LLMClient
 from src.schemas.evidence import EvidenceBundle
 from src.schemas.issue import Issue
@@ -49,7 +49,7 @@ class RefinerAgent:
         issues: list[Issue],
         evidence_bundles: list[EvidenceBundle],
     ) -> RefinerOutput:
-        system = render("refiner", "system")
+        system = render("refiner", "system") + "\n\n" + schema_example_block(RefinerOutput)
         user = render(
             "refiner",
             "user",

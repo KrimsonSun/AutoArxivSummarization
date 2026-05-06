@@ -13,6 +13,9 @@ dependencies = [
     "tenacity>=9.0.0",
     "structlog>=24.4.0",
     "pyyaml>=6.0.2",
+    # Experiment plotting
+    "matplotlib>=3.9.0",
+    "numpy>=1.26.0",
 ]
 
 [project.optional-dependencies]
@@ -23,6 +26,13 @@ dev = [
 ]
 embedding = [
     "sentence-transformers>=3.0.0",  # optional: only if you switch retrieval to dense
+]
+nli = [
+    # DeBERTa-v3-base-mnli-fever-anli for entailment-based verification.
+    # ~250 MB weight download on first use; runs on CPU at ~50 ms / pair.
+    "transformers>=4.45.0",
+    "torch>=2.4.0",
+    "sentencepiece>=0.2.0",  # required by DeBERTa tokenizer
 ]
 
 [project.scripts]

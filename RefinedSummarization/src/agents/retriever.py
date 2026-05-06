@@ -6,7 +6,7 @@ ParsedPaper, so the LLM cannot fabricate or rewrite source content.
 """
 from __future__ import annotations
 
-from src.agents._prompts import render
+from src.agents._prompts import render, schema_example_block
 from src.llm_clients.base import LLMClient
 from src.schemas.evidence import EvidenceBundle, EvidenceItem, EvidenceSelectionList
 from src.schemas.issue import Issue
@@ -20,7 +20,7 @@ class EvidenceRetrieverAgent:
         self.client = client
 
     async def run(self, issue: Issue, paper: ParsedPaper) -> EvidenceBundle:
-        system = render("retriever", "system")
+        system = render("retriever", "system") + "\n\n" + schema_example_block(EvidenceSelectionList)
         user = render("retriever", "user", issue=issue, paper=paper)
         try:
             selection: EvidenceSelectionList = await self.client.generate(

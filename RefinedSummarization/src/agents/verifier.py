@@ -1,7 +1,7 @@
 """Verifier agent (handoff §2.3, §4.2)."""
 from __future__ import annotations
 
-from src.agents._prompts import render
+from src.agents._prompts import render, schema_example_block
 from src.llm_clients.base import LLMClient
 from src.schemas.issue import Issue, IssueList
 from src.schemas.paper import ParsedPaper
@@ -23,7 +23,7 @@ class VerifierAgent:
         paper: ParsedPaper,
         summaries: list[InitialSummary],
     ) -> list[Issue]:
-        system = render("verifier", "system")
+        system = render("verifier", "system") + "\n\n" + schema_example_block(IssueList)
         user = render("verifier", "user", paper=paper, summaries=summaries)
         result: IssueList = await self.client.generate(
             system_prompt=system,
