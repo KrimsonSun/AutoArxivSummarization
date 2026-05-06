@@ -77,6 +77,17 @@ def f1_of(precision: float, recall: float) -> float:
     return 2 * precision * recall / (precision + recall)
 
 
+def fbeta_of(precision: float, recall: float, beta: float) -> float:
+    """General F-beta. beta=1 is F1; beta=0.5 weights precision; beta=2 weights recall."""
+    if precision <= 0 and recall <= 0:
+        return 0.0
+    b2 = beta * beta
+    denom = b2 * precision + recall
+    if denom <= 0:
+        return 0.0
+    return (1.0 + b2) * precision * recall / denom
+
+
 def assemble_report(
     arxiv_id: str | None,
     title: str,
@@ -95,6 +106,8 @@ def assemble_report(
     per_paper_claim: list[PaperClaimCoverage] | None = None,
     strict_mode: bool = False,
 ) -> EvaluationReport:
+    f_half = fbeta_of(coverage, paper_recall, beta=0.5) if strict_mode else 0.0
+    f_two = fbeta_of(coverage, paper_recall, beta=2.0) if strict_mode else 0.0
     return EvaluationReport(
         arxiv_id=arxiv_id,
         title=title,
@@ -108,6 +121,8 @@ def assemble_report(
         paper_coverage_counts=paper_coverage_counts or CoverageCounts(),
         paper_recall=paper_recall,
         f1=f1,
+        f_half=f_half,
+        f_two=f_two,
         per_paper_claim=per_paper_claim or [],
         strict_mode=strict_mode,
         eval_config=config_snapshot,

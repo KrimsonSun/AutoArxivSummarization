@@ -202,6 +202,27 @@ class EvaluationReport(BaseModel):
             "This is the headline strict-mode metric. Higher is better."
         ),
     )
+    f_half: float = Field(
+        default=0.0,
+        description=(
+            "F-beta with beta=0.5 — precision is weighted 4× more than recall. "
+            "This metric penalises missing facts LESS aggressively than F1 "
+            "and is reported alongside F1 because the absolute paper_recall "
+            "ceiling is bounded by summary length (a 1000-word summary can "
+            "physically cover ~25 atomic claims; if a paper has 40 paper "
+            "claims, perfect recall is unreachable). Use F0.5 to compare "
+            "FACTUALITY across methods at fixed length budget; use F1 when "
+            "you need a balanced view."
+        ),
+    )
+    f_two: float = Field(
+        default=0.0,
+        description=(
+            "F-beta with beta=2 — recall weighted 4× more than precision. "
+            "Reported for completeness so reviewers can read off the "
+            "recall-favoured number directly."
+        ),
+    )
     per_paper_claim: list[PaperClaimCoverage] = Field(default_factory=list)
     strict_mode: bool = False
 

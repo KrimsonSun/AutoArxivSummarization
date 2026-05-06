@@ -1,0 +1,54 @@
+# =============================================================================
+# Refine-OneVision-Summary default config.
+#
+# OpenRouter wiring: set OPENAI_BASE_URL=https://openrouter.ai/api/v1 and
+# OPENAI_API_KEY=sk-or-v1-... in .env. All three drafters run via OpenRouter;
+# heterogeneity comes from picking three different model identities.
+# =============================================================================
+
+pipeline:
+  # Stage 1 drafters — 3 heterogeneous LLMs.
+  initial_agents:
+    - id: agent_llama
+      provider: openai
+      model: meta-llama/llama-3.3-70b-instruct
+      temperature: 0.7
+    - id: agent_qwen
+      provider: openai
+      model: qwen/qwen-2.5-72b-instruct
+      temperature: 0.7
+    - id: agent_deepseek
+      provider: openai
+      model: deepseek/deepseek-chat
+      temperature: 0.7
+
+  # Stage 3 verifier + Stage 4 retriever + Stage 5 refiner all share this client.
+  # Llama 3.3 70B has 128k context, comfortably fitting full paper paragraphs.
+  pipeline_llm:
+    provider: openai
+    model: meta-llama/llama-3.3-70b-instruct
+    temperature: 0.3
+
+  # Stage 2 game-theory voting parameters.
+  voting:
+    rounds: 3
+    seed: 42
+
+  # Hard word cap for both drafts and final summary.
+  max_summary_words: 1000
+
+constraints:
+  max_issues: 12
+  max_evidence_per_issue: 3
+  max_paragraphs_in_refiner_context: 50
+  llm_timeout_seconds: 120
+  max_retries: 2
+
+output:
+  json_output_dir: outputs/json
+  markdown_output_dir: outputs/markdown
+  emit_markdown: true
+
+logging:
+  level: INFO
+  json_logs: true
