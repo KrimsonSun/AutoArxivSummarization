@@ -47,12 +47,52 @@
   year={2023}
 }
 
+% ---------------------------------------------------------------------------
+% NOTE: iLLMV (IEEE BigData 2025) reference is a placeholder. Before camera-
+% ready submission, replace this entry with the published BibTeX from the IEEE
+% proceedings. If the venue uses double-blind review, ensure the references
+% bib does not violate anonymity. The current ``Anonymous'' attribution is
+% NOT a real bibliographic entry; do not submit as-is.
+% ---------------------------------------------------------------------------
 @inproceedings{illmv2025bigdata,
-  title={iLLMV: Iterative LLM Verification with Self-Consistency for Legal Element Extraction},
-  author={Authors, Anonymous},
-  booktitle={IEEE International Conference on Big Data},
-  year={2025},
-  note={Reference for the iterative-refinement design our pipeline builds on.}
+  title     = {iLLMV: Iterative LLM Verification with Self-Consistency for Legal Element Extraction},
+  author    = {{\textbf{[PLACEHOLDER --- replace before submission]}}},
+  booktitle = {Proceedings of the IEEE International Conference on Big Data (BigData 2025)},
+  year      = {2025},
+  note      = {Placeholder; replace with the published citation. The iLLMV
+               design — iterative LLM verification with Jaccard-style
+               self-consistency on legal element extraction — is the
+               iterative-refinement ancestor of our pipeline. The KIU
+               (key-information-unit) extraction step in iLLMV is what we
+               propose as Section 7's F3 fix.}
+}
+
+@article{specem2024,
+  title     = {SpecEM: Speculative Decoding for Multi-Model Ensembling},
+  author    = {{[PLACEHOLDER --- replace with the actual SpecEM citation]}},
+  journal   = {arXiv preprint},
+  year      = {2024},
+  note      = {SpecEM operates token-level on open-ended generation:
+               multiple models score each candidate continuation by average
+               per-token log-likelihood, and the highest-scoring continuation
+               is accepted. The token-level + open-ended-generation regime
+               is exactly the consensus-reasoning regime where multi-model
+               aggregation works; our results suggest that lifting it to
+               summary-level on a union-reconstruction task fails.}
+}
+
+@inproceedings{dao2022flashattention,
+  title     = {{FlashAttention}: Fast and Memory-Efficient Exact Attention with {IO}-Awareness},
+  author    = {Dao, Tri and Fu, Daniel Y. and Ermon, Stefano and Rudra, Atri and R{\'e}, Christopher},
+  booktitle = {Advances in Neural Information Processing Systems},
+  year      = {2022}
+}
+
+@article{bai2022constitutionalai,
+  title   = {Constitutional {AI}: Harmlessness from {AI} Feedback},
+  author  = {Bai, Yuntao and Kadavath, Saurav and Kundu, Sandipan and Askell, Amanda and Kernion, Jackson and Jones, Andy and Chen, Anna and Goldie, Anna and Mirhoseini, Azalia and McKinnon, Cameron and others},
+  journal = {arXiv preprint arXiv:2212.08073},
+  year    = {2022}
 }
 
 @inproceedings{min2023factscore,
