@@ -529,9 +529,10 @@ material, and \textbf{F3}\,---\,combined with a non-merging
 architecture\,---\,is validated as a follow-up architectural redesign
 in the companion paper~\cite{sun2026onevision}. The companion paper's
 headline contrast (\textsc{OneVision} vs.\ B6 single-LLM-with-the-same-prompt
-control) is $\Delta F_1 = +0.153$ strict-LLM, $95\%$~CI
-$[+0.058,+0.265]$ on $n=13$ paired papers; $\Delta F_1 = +0.150$
-DeBERTa-NLI, CI~$[+0.061,+0.254]$. We sketch the three fixes here and
+control) is $\Delta F_1 = +0.106$ strict-LLM, $95\%$~CI
+$[+0.047,+0.175]$ on $n=25$ paired papers; $\Delta F_1 = +0.126$
+DeBERTa-NLI, CI~$[+0.072,+0.187]$, $n=26$ paired (full $n=29$
+sample). We sketch the three fixes here and
 defer the full architectural study to that work.
 
 \paragraph{(F1) Union-biased refiner prompt.}
@@ -563,7 +564,7 @@ extraction. The companion paper~\cite{sun2026onevision} replaces the
 that selects one winning draft via 3-round game-theoretic voting and
 then augments it with verifier-flagged missing facts. This combination
 of F2 (verifier-on-full-text) and F3-like rearchitecting is what
-recovers the $+0.15$ $F_1$ result above. Crucially, the same prompt
+recovers the $+0.11$ $F_1$ result above. Crucially, the same prompt
 directives applied to a single-LLM call (B6 in this paper, also B6 in
 the companion) do \emph{not} reach the same $F_1$\,---\,settling the
 prompt-vs.-architecture question raised by this paper's negative
@@ -638,8 +639,9 @@ paragraph text instead of paragraph short-summaries, (ii) replacing
 the merging refiner with a 3-round game-theoretic voter that picks
 \emph{one} winning draft, then augmenting that draft with
 verifier-flagged missing facts\,---\,the redesigned pipeline beats the
-same-prompt single-LLM control (B6 in this paper) by $+0.15$ $F_1$
-under both decoupled judges on $n=13$ paired papers. The negative
+same-prompt single-LLM control (B6 in this paper) by $+0.11$ $F_1$
+under both decoupled judges on $n=25$--$26$ paired papers from a
+$29$-paper sample. The negative
 result we report here is therefore a result about a \emph{specific}
 multi-agent architecture (debate-as-merge), not about multi-agent
 debate per se on this task class. We hope the diagnostic case studies

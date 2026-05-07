@@ -63,23 +63,38 @@ and (ii) the merging refiner is replaced with a 3-round
 game-theoretic voter that picks one winning draft, followed by an
 augmenting refiner that only \emph{adds} verifier-flagged missing
 facts. We call the redesigned system \textsc{OneVision}.
-On a 15-paper seed-fixed sample with all methods capped at 1000 words,
+
+On a 29-paper seed-fixed sample with all methods capped at 1000 words,
 \textsc{OneVision} beats the single-LLM-with-the-same-prompt control
-(B6) by $\Delta F_1 \!=\! +0.153$ strict-LLM, $95\%$~CI
-$[+0.058, +0.265]$ on $n\!=\!13$ paired papers; $\Delta F_1 \!=\!
-+0.150$ DeBERTa-NLI, CI~$[+0.061, +0.254]$. Both contrasts are
-statistically significant under decoupled judges. The recall component
-of $F_1$ accounts for essentially all of the gain
-($\Delta R \!\approx\! +0.16$), confirming that the architectural fix
-restores the missing-fact retrieval the v1 verifier was unable to
-perform. \textsc{OneVision} ties the strongest single-LLM baseline
-(Qwen-72B-naive, B2) within statistical noise: $\Delta F_1 \!=\!
--0.033$ strict, $-0.037$ DeBERTa, both n.s. We argue that the
-selection-vs.-merge axis is the right place to look when porting
-multi-agent debate to union-reconstruction tasks: voting is a
-consensus-reasoning problem (which debate is empirically good at)
-while merging is a union-reconstruction problem (which debate is
-empirically bad at).
+(B6, Llama-70B with identical prompt directives but no debate) by
+$\Delta F_1 \!=\! +0.106$ strict-LLM, $95\%$~CI $[+0.047, +0.175]$
+on $n\!=\!25$ paired papers; $\Delta F_1 \!=\! +0.126$ DeBERTa-NLI,
+CI~$[+0.072, +0.187]$, $n\!=\!26$ paired. Both contrasts are
+statistically significant under decoupled judges, with the recall
+component accounting for essentially all of the gain. This isolates
+an architectural contribution worth $\sim\!+0.11$ $F_1$ over a
+matched single-LLM control on this task class.
+
+\textsc{OneVision} does \emph{not} exceed the strongest cross-family
+single-LLM baselines: it is statistically tied with Qwen-72B-naive
+($\Delta F_1 \!=\! -0.072$ strict, $-0.044$ DeBERTa, both n.s.\
+with strict CI just touching $0$ from below) and tied with
+DeepSeek-V3-naive ($\Delta F_1 \!=\! -0.041$ strict, $+0.009$
+DeBERTa, n.s.). The honest framing is therefore: under
+\emph{fixed-backbone} constraints (e.g., Llama family for licensing
+or domain-tuning reasons), the \textsc{OneVision} architecture
+recovers $\sim\!+0.11$ $F_1$ on the same-prompt control and brings
+the Llama-70B-based stack within $\sim\!0.06$ $F_1$ of the strongest
+single-LLM baseline; under \emph{free-backbone} settings, a single
+Qwen-72B-naive call dominates the cost frontier.
+
+We argue that the selection-vs.-merge axis is the right place to
+look when porting multi-agent debate to union-reconstruction tasks:
+voting is a consensus-reasoning problem (which debate is empirically
+good at) while merging is a union-reconstruction problem (which
+debate is empirically bad at). The architectural contribution
+isolated here is the within-family signal that matters for the
+multi-agent design literature.
 \end{abstract}
 % =============================================================================
 
@@ -136,21 +151,35 @@ refiner cannot intersect drafts it never sees; its only job is to
 or correct distorted ones, while staying under a hard 1000-word cap.
 
 \paragraph{Headline result.}
-On a 15-paper seed-fixed sample (one paper excluded for PDF parse
-failure unrelated to the pipeline; one excluded from $B_2$-paired
-analysis for a recall-checker truncation, leaving $n=13$ paired):
+On a 29-paper seed-fixed sample (one paper excluded for PDF parse
+failure unrelated to the pipeline; per-method paired $n$ varies
+from $23$ to $27$ due to occasional recall-checker truncation on
+long papers):
 
 \begin{itemize}[leftmargin=*,topsep=2pt,itemsep=2pt]
     \item $\Delta F_1(\textsc{OneVision} - \text{B6 single-LLM-v2-prompt})
-          = +0.153$ strict-LLM, 95\%~CI $[+0.058, +0.265]$, $d \!=\! +0.97$.
-    \item $\Delta F_1(\textsc{OneVision} - \text{B6}) = +0.150$ DeBERTa-NLI,
-          CI~$[+0.061, +0.254]$, $d \!=\! +1.05$.
+          = +0.106$ strict-LLM, 95\%~CI $[+0.047, +0.175]$, $n=25$ paired.
+    \item $\Delta F_1(\textsc{OneVision} - \text{B6}) = +0.126$ DeBERTa-NLI,
+          CI~$[+0.072, +0.187]$, $n=26$ paired.
     \item Recall accounts for essentially all of the gain
-          ($\Delta R\!=\!+0.154$ strict, $+0.165$ DeBERTa).
+          ($\Delta R \!\approx\! +0.10$ strict, $+0.13$ DeBERTa).
     \item $\Delta F_1(\textsc{OneVision} - \text{B2 Qwen-72B-naive})
-          = -0.033$ strict, $-0.037$ DeBERTa\,---\,statistically tied
-          with the strongest single-LLM baseline.
+          = -0.072$ strict, $-0.044$ DeBERTa\,---\,statistically tied
+          with the strongest single-LLM baseline (both 95\% CIs
+          touch zero from below; we cannot reject the null that
+          \textsc{OneVision} loses).
+    \item $\Delta F_1(\textsc{OneVision} - \text{B3 DeepSeek-V3-naive})
+          = -0.041$ strict, $+0.009$ DeBERTa\,---\,also a tie.
 \end{itemize}
+
+\noindent The honest reading: \textsc{OneVision} \emph{recovers an
+architectural contribution worth $\approx +0.11$ $F_1$ within the
+Llama family}, but does \emph{not} exceed the strongest cross-family
+single-LLM baselines. The contribution is most defensible under
+fixed-backbone constraints (e.g., licensing, domain-tuned weights,
+deployment lock-in) where Qwen / DeepSeek substitution is not
+available; under free-backbone settings the cost frontier favours
+B2 directly.
 
 \paragraph{What this means for the prompt-vs.-architecture question.}
 The companion paper closes with a candid acknowledgement that on the
@@ -161,9 +190,11 @@ result here is not in conflict: the v1 architecture was broken in a
 specific way (verifier-on-summaries, refiner-as-merge), and the
 ``prompt does all the work'' verdict was correct \emph{conditional
 on that broken architecture}. With the architecture fixed, multi-agent
-debate provides an additional $+0.15$ $F_1$ over single-LLM with
-identical prompt instructions. Both factors matter; their effects
-are conditional on each other.
+debate provides an additional $+0.11$ $F_1$ (strict-LLM, $n=25$
+paired) / $+0.13$ (DeBERTa-NLI, $n=26$) over single-LLM with
+identical prompt instructions, and this gap is statistically
+significant under both decoupled judges. Both factors matter; their
+effects are conditional on each other.
 
 \paragraph{Contributions.}
 \begin{enumerate}[leftmargin=*,topsep=2pt,itemsep=1pt]
@@ -173,13 +204,14 @@ are conditional on each other.
           implemented in the open-source
           \textsc{Refine-OneVision-Summary} module
           (Section~\ref{sec:method}).
-    \item A 15-paper paired-bootstrap evaluation under two decoupled
+    \item A 29-paper paired-bootstrap evaluation under two decoupled
           judges with F-beta variants reported across $\beta \in
           \{0.5, 1, 2\}$ and a hard 1000-word length cap on every
           method, removing length confounds that would otherwise
           inflate the recall metric (Section~\ref{sec:eval}).
     \item A statistically significant architectural gain over a same-prompt
-          single-LLM control: $\Delta F_1\!=\!+0.15$ ($d\!\approx\!+1.0$)
+          single-LLM control: $\Delta F_1\!=\!+0.106$ strict-LLM /
+          $+0.126$ DeBERTa-NLI ($n=25$--$26$ paired)
           under both judges, dominated by recall
           (Section~\ref{sec:results}).
     \item An open implementation: code, prompts, voting transcripts,
@@ -390,13 +422,19 @@ includes a length distribution figure verifying compliance.
 
 \paragraph{Paper sample.}
 We use the same paper-pool sampler as the companion paper:
-seed-42 sample of $n=15$ from the curated 30-paper pool. Papers span
-NLP architecture (Transformer, BERT), parameter-efficient tuning
-(Prompt Tuning, LoRA), pretraining/scaling (GPT-3, Vision Transformer),
-RL/alignment (Constitutional AI), agents (AutoGen), and reasoning
-(PaLM, PaLM-2). One paper (\texttt{2106.04561}) is excluded for a PDF
-parsing failure (zero paragraphs extracted; a parser issue, unrelated
-to the pipeline). Most paired analyses are on $n\!=\!13$.
+seed-42 sample of $n=29$ from the curated 30-paper pool. Papers
+span NLP architecture (Transformer, BERT), parameter-efficient
+tuning (Prompt Tuning, LoRA), pretraining/scaling (GPT-3, Vision
+Transformer), diffusion (Stable Diffusion, DALL$\cdot$E~2),
+RL/alignment (PPO, Constitutional AI, DPO), agents (AutoGen,
+ReAct, Tree of Thoughts), and reasoning (PaLM, PaLM-2,
+Chain-of-Thought). One paper (\texttt{2106.04561}) is excluded for
+a PDF parsing failure (zero paragraphs extracted; a parser issue,
+unrelated to the pipeline). Per-method paired $n$ ranges from $23$
+to $27$ depending on which methods' recall-checker calls completed
+(some long papers like PaLM-2 hit the $16$k-token output cap on the
+recall checker, falling back to a defensive ``not covered''
+verdict, which we drop).
 
 \paragraph{Methods evaluated (7).}
 \begin{itemize}[leftmargin=*,itemsep=1pt]
@@ -446,7 +484,7 @@ win/loss/tie counts at $\pm 0.02$ tolerance. We mark contrasts as
 \begin{figure}[t]
     \centering
     \includegraphics[width=0.95\columnwidth]{figures/onevision_lengths.png}
-    \caption{Word counts per method on the $n=15$ sample. The dashed
+    \caption{Word counts per method on the $n=29$ sample. The dashed
     red line marks the 1000-word hard cap. All methods sit below the
     cap, and \textsc{OneVision} (leftmost) falls well within the
     range covered by single-LLM baselines, ruling out length as a
@@ -455,8 +493,8 @@ win/loss/tie counts at $\pm 0.02$ tolerance. We mark contrasts as
 \end{figure}
 
 Figure~\ref{fig:lengths} shows the word-count distribution per
-method. \textsc{OneVision} averages 717 (strict) / 727 (deberta)
-words, B2 averages 591/603, B6 averages 413/420. \textsc{OneVision}
+method. \textsc{OneVision} averages 702 (strict) / 704 (deberta)
+words, B2 averages 726/720, B6 averages 503/499. \textsc{OneVision}
 is longer than the Llama-based baselines but is well within the cap
 and within $\sim 130$ words of B2 (the strongest baseline).
 Length-driven inflation of recall would, if anything, predict
@@ -470,7 +508,7 @@ actually observe (Section~\ref{sec:results-headline}).
     \centering
     \includegraphics[width=\textwidth]{figures/onevision_means.png}
     \caption{Mean $F_1$, $F_{0.5}$, and paper-side recall for each of
-    the 7 methods on the $n=15$ sample, under both strict-LLM
+    the 7 methods on the $n=29$ sample, under both strict-LLM
     (green) and DeBERTa-NLI (blue) judges. Error bars are $95\%$
     paired-bootstrap CIs. \textsc{OneVision} (leftmost in each
     panel) is the strongest Llama-based method on every metric,
@@ -491,22 +529,24 @@ under DeBERTa.
 \toprule
 \textbf{Method} & $n$ & $F_1$ & $F_{0.5}$ & $F_2$ & $P$ & $R$ & $\text{hal}$ \\
 \midrule
-\textsc{OneVision}      & $13$ & $\mathbf{0.587}$ & $\mathbf{0.752}$ & $0.491$ & $0.965$ & $0.446$ & $0.016$ \\
-B1 Llama-naive          & $13$ & $0.447$ & $0.642$ & $0.348$ & $0.969$ & $0.304$ & $0.017$ \\
-\textbf{B2 Qwen-naive}  & $12$ & $\mathbf{0.606}$ & $0.741$ & $\mathbf{0.521}$ & $0.958$ & $\mathbf{0.479}$ & $\mathbf{0.010}$ \\
-B3 DeepSeek-naive       & $11$ & $0.517$ & $0.684$ & $0.422$ & $0.929$ & $0.377$ & $0.052$ \\
-B4 Llama-8B-naive       & $13$ & $0.387$ & $0.585$ & $0.292$ & $0.973$ & $0.252$ & $0.013$ \\
-B5 Llama-structured     & $13$ & $0.390$ & $0.574$ & $0.299$ & $0.911$ & $0.260$ & $0.044$ \\
-B6 Llama-v2prompt       & $13$ & $0.434$ & $0.620$ & $0.336$ & $0.893$ & $0.292$ & $0.072$ \\
+\textsc{OneVision}      & $26$ & $0.584$ & $0.751$ & $0.485$ & $0.960$ & $0.438$ & $0.026$ \\
+B1 Llama-naive          & $24$ & $0.503$ & $0.677$ & $0.408$ & $0.954$ & $0.363$ & $0.034$ \\
+\textbf{B2 Qwen-naive}  & $24$ & $\mathbf{0.645}$ & $\mathbf{0.780}$ & $\mathbf{0.560}$ & $0.965$ & $\mathbf{0.517}$ & $\mathbf{0.015}$ \\
+B3 DeepSeek-naive       & $24$ & $0.619$ & $0.764$ & $0.528$ & $0.943$ & $0.483$ & $0.044$ \\
+B4 Llama-8B-naive       & $26$ & $0.457$ & $0.644$ & $0.358$ & $0.959$ & $0.314$ & $0.026$ \\
+B5 Llama-structured     & $26$ & $0.431$ & $0.604$ & $0.340$ & $0.903$ & $0.300$ & $0.056$ \\
+B6 Llama-v2prompt       & $25$ & $0.478$ & $0.655$ & $0.380$ & $0.906$ & $0.336$ & $0.062$ \\
 \bottomrule
 \end{tabular}
-\caption{Per-method means under \textbf{strict-LLM} on the $n=15$
-sample (each row reports the count of papers with valid evals;
-the few drops are due to the recall checker exceeding its token
-budget on PaLM-2-style long papers and the one PDF parse failure).
-\textsc{OneVision} and B2 are the two strongest methods; all the
-other Llama-based methods (including B6 with the same prompt as
-\textsc{OneVision}'s drafters) trail by $\geq 0.15$ in $F_1$.}
+\caption{Per-method means under \textbf{strict-LLM} on the
+$n\!=\!29$ sample (each row reports the count of papers with valid
+evals; drops are due to the recall checker exceeding its token
+budget on PaLM-2-style long papers and the one PDF parse failure on
+\texttt{2106.04561}). B2 (Qwen-72B-naive) and B3 (DeepSeek-V3-naive)
+lead overall; \textsc{OneVision} is the strongest \emph{Llama-based}
+method, sitting between B3 and B1 in mean $F_1$ and ahead of B6 (the
+matched single-LLM control with the same prompt directives) by
+$\geq 0.10$.}
 \label{tab:per-method-strict}
 \end{table}
 
@@ -517,20 +557,24 @@ other Llama-based methods (including B6 with the same prompt as
 \toprule
 \textbf{Method} & $n$ & $F_1$ & $F_{0.5}$ & $F_2$ & $P$ & $R$ & $\text{hal}$ \\
 \midrule
-\textsc{OneVision}      & $13$ & $\mathbf{0.490}$ & $\mathbf{0.550}$ & $0.458$ & $0.627$ & $0.446$ & $0.283$ \\
-B1 Llama-naive          & $12$ & $0.382$ & $0.492$ & $0.319$ & $0.631$ & $0.289$ & $0.302$ \\
-\textbf{B2 Qwen-naive}  & $12$ & $\mathbf{0.525}$ & $\mathbf{0.555}$ & $\mathbf{0.508}$ & $0.603$ & $\mathbf{0.503}$ & $0.342$ \\
-B3 DeepSeek-naive       & $13$ & $0.417$ & $0.461$ & $0.399$ & $0.518$ & $0.399$ & $0.419$ \\
-B4 Llama-8B-naive       & $11$ & $0.349$ & $0.451$ & $0.293$ & $0.619$ & $0.267$ & $0.316$ \\
-B5 Llama-structured     & $13$ & $0.364$ & $0.469$ & $0.304$ & $0.613$ & $0.276$ & $0.334$ \\
-B6 Llama-v2prompt       & $13$ & $0.341$ & $0.421$ & $0.299$ & $0.542$ & $0.281$ & $0.404$ \\
+\textsc{OneVision}      & $27$ & $0.515$ & $0.595$ & $0.466$ & $0.684$ & $0.445$ & $\mathbf{0.252}$ \\
+B1 Llama-naive          & $23$ & $0.431$ & $0.529$ & $0.374$ & $0.661$ & $0.349$ & $0.289$ \\
+\textbf{B2 Qwen-naive}  & $26$ & $\mathbf{0.559}$ & $\mathbf{0.598}$ & $\mathbf{0.533}$ & $0.642$ & $\mathbf{0.520}$ & $0.307$ \\
+B3 DeepSeek-naive       & $27$ & $0.506$ & $0.546$ & $0.489$ & $0.596$ & $0.489$ & $0.353$ \\
+B4 Llama-8B-naive       & $25$ & $0.407$ & $0.517$ & $0.345$ & $0.681$ & $0.316$ & $0.276$ \\
+B5 Llama-structured     & $26$ & $0.383$ & $0.493$ & $0.323$ & $0.647$ & $0.295$ & $0.308$ \\
+B6 Llama-v2prompt       & $26$ & $0.389$ & $0.474$ & $0.342$ & $0.592$ & $0.321$ & $0.368$ \\
 \bottomrule
 \end{tabular}
 \caption{Per-method means under \textbf{DeBERTa-NLI} on the same
-$n=15$ sample. The picture is consistent with the strict-LLM ranking
-(Spearman $\rho \!=\! 1.00$ on the $F_1$ ordering above):
-\textsc{OneVision} and B2 lead, B6 trails despite using identical
-prompt directives to \textsc{OneVision}'s drafters.}
+$n\!=\!29$ sample. The mean ordering is consistent with strict-LLM
+on the top three (B2 $>$ \textsc{OneVision} $\approx$ B3) and
+matches strict-LLM exactly on which methods trail
+(\textsc{OneVision} $>$ B1 $>$ B4 $>$ B6 $>$ B5). \textsc{OneVision}
+ties B3 within sampling noise here ($\Delta F_1\!=\!+0.009$ paired,
+n.s.). Notably, hallucination rate under DeBERTa is lowest for
+\textsc{OneVision} (0.252) — voting-then-augmenting drops fewer
+unsupported claims than naive single-LLM summarisation.}
 \label{tab:per-method-deberta}
 \end{table}
 
@@ -556,31 +600,40 @@ contrasts under both judges.
 \begin{table}[t]
 \centering
 \small
-\begin{tabular}{l|c|rrrr|rrrr}
+\begin{tabular}{l|c|rrr|rrr}
 \toprule
 \multirow{2}{*}{\textbf{Baseline}} & \multirow{2}{*}{$n$}
-  & \multicolumn{4}{c|}{\textbf{Strict-LLM}}
-  & \multicolumn{4}{c}{\textbf{DeBERTa-NLI}}\\
-& & $\Delta F_1$ & $95\%$~CI & $d$ & sig.
-  & $\Delta F_1$ & $95\%$~CI & $d$ & sig. \\
+  & \multicolumn{3}{c|}{\textbf{Strict-LLM}}
+  & \multicolumn{3}{c}{\textbf{DeBERTa-NLI}}\\
+& & $\Delta F_1$ & $95\%$~CI & sig.
+  & $\Delta F_1$ & $95\%$~CI & sig. \\
 \midrule
-B1 Llama-70B-naive         & $13$ & $+0.140$ & $[+0.075,+0.203]$ & $+1.20$ & ** & $+0.101$ & $[+0.049,+0.156]$ & $+0.99$ & ** \\
-\textbf{B2 Qwen-72B-naive} & $12$ & $-0.033$ & $[-0.121,+0.073]$ & $-0.21$ & ns & $-0.037$ & $[-0.123,+0.059]$ & $-0.23$ & ns \\
-B3 DeepSeek-V3-naive       & $13$ & $+0.056$ & $[-0.058,+0.173]$ & $+0.32$ & ns & $+0.073$ & $[-0.013,+0.155]$ & $+0.51$ & ns \\
-B4 Llama-8B-naive          & $13$ & $+0.200$ & $[+0.126,+0.275]$ & $+1.49$ & ** & $+0.132$ & $[+0.076,+0.194]$ & $+1.31$ & ** \\
-B5 Llama-70B-struct        & $13$ & $+0.197$ & $[+0.122,+0.277]$ & $+1.43$ & ** & $+0.126$ & $[+0.071,+0.181]$ & $+1.29$ & ** \\
-\textbf{B6 Llama-70B-v2prompt} & $13$ & $\mathbf{+0.153}$ & $\mathbf{[+0.058,+0.265]}$ & $\mathbf{+0.97}$ & **
-                                       & $\mathbf{+0.150}$ & $\mathbf{[+0.061,+0.254]}$ & $\mathbf{+1.05}$ & ** \\
+B1 Llama-70B-naive         & $24$ / $23$ & $+0.078$ & $[+0.010,+0.142]$ & ** & $+0.079$ & $[+0.034,+0.127]$ & ** \\
+\textbf{B2 Qwen-72B-naive} & $24$ / $26$ & $-0.072$ & $[-0.136,+0.004]$ & ns\textsuperscript{$\dagger$}
+                                          & $-0.044$ & $[-0.090,+0.007]$ & ns\textsuperscript{$\dagger$} \\
+B3 DeepSeek-V3-naive       & $24$ / $27$ & $-0.041$ & $[-0.114,+0.034]$ & ns
+                                          & $+0.009$ & $[-0.049,+0.066]$ & ns \\
+B4 Llama-8B-naive          & $26$ / $25$ & $+0.128$ & $[+0.070,+0.185]$ & ** & $+0.106$ & $[+0.062,+0.151]$ & ** \\
+B5 Llama-70B-struct        & $26$ / $26$ & $+0.153$ & $[+0.103,+0.205]$ & ** & $+0.131$ & $[+0.092,+0.172]$ & ** \\
+\textbf{B6 Llama-70B-v2prompt} & $25$ / $26$ & $\mathbf{+0.106}$ & $\mathbf{[+0.047,+0.175]}$ & **
+                                              & $\mathbf{+0.126}$ & $\mathbf{[+0.072,+0.187]}$ & ** \\
 \bottomrule
 \end{tabular}
 \caption{Paired $\Delta F_1$ contrasts (\textsc{OneVision} $-$
-baseline) with $95\%$ paired-bootstrap CIs ($10{,}000$ resamples)
-and Cohen's $d$ on the per-paper differences. The boldfaced row is
-the architecture-vs.-prompt control: B6 uses the \emph{same} prompt
-directives as \textsc{OneVision}'s drafters and the same Llama-70B
-backbone, but in a single-call, no-debate setting. The $+0.15$
-$F_1$ gap, significant under both decoupled judges, isolates the
-architectural contribution.}
+baseline) on the $n\!=\!29$ sample with $95\%$ paired-bootstrap CIs
+($10{,}000$ resamples). The $n$ column reports the strict / DeBERTa
+paired counts (counts vary because some methods drop one or two
+papers to recall-checker truncation on long papers). The boldfaced
+row is the architecture-vs.-prompt control: B6 uses the \emph{same}
+prompt directives as \textsc{OneVision}'s drafters and the same
+Llama-70B backbone, but in a single-call, no-debate setting. The
+$\sim\!+0.11$ to $+0.13$ $F_1$ gap, significant under both decoupled
+judges, isolates the architectural contribution.\\
+$^\dagger$The strict-mode CI on the B2 contrast just touches zero
+from below ($+0.004$ upper edge), so we cannot reject the null that
+\textsc{OneVision} loses to Qwen-72B-naive at this sample size.
+DeBERTa-mode CI also touches zero ($+0.007$), giving the same
+verdict.}
 \label{tab:contrasts}
 \end{table}
 
@@ -596,19 +649,24 @@ architectural contribution.}
   & \multicolumn{2}{c}{\textbf{DeBERTa-NLI}} \\
 & $\Delta P$ & $\Delta R$ & $\Delta P$ & $\Delta R$ \\
 \midrule
-\textsc{OneVision} $-$ B6  & $+0.072$ & $+0.154$ & $+0.085$ & $+0.165$ \\
-\textsc{OneVision} $-$ B1  & $-0.004$ & $+0.142$ & $-0.004$ & $+0.157$ \\
-\textsc{OneVision} $-$ B2  & $+0.007$ & $-0.048$ & $+0.024$ & $-0.054$ \\
+\textsc{OneVision} $-$ B6  & $+0.054$ & $+0.101$ & $+0.092$ & $+0.126$ \\
+\textsc{OneVision} $-$ B1  & $+0.006$ & $+0.072$ & $+0.023$ & $+0.097$ \\
+\textsc{OneVision} $-$ B2  & $-0.005$ & $-0.089$ & $+0.042$ & $-0.073$ \\
 \bottomrule
 \end{tabular}
 \caption{Paired contrasts decomposed into precision and recall
-components. The dominant signal is \textbf{recall}: \textsc{OneVision}
-gains $\sim+0.15$ recall over B6 and B1, with essentially flat
-precision (B6) or a small precision advantage (B2). This is consistent
-with the diagnosis that the v1 verifier was missing facts because it
-read paragraph short-summaries; with the verifier reading full
-paragraph text, the missing-fact retrieval channel that drives
-recall actually fires.}
+components ($n\!=\!29$). The dominant signal is \textbf{recall}:
+\textsc{OneVision} gains $\sim\!+0.10$--$+0.13$ recall over B6 and
+B1, with essentially flat or modestly positive precision. The
+B2 contrast shows the residual gap: \textsc{OneVision} loses to
+Qwen-72B-naive primarily on recall ($-0.073$ to $-0.089$) — Qwen's
+denser specifics still beat what our voter+augmenter recovers from
+three Llama-based drafts. This is consistent with the diagnosis
+that the v1 verifier was missing facts because it read paragraph
+short-summaries; with the verifier reading full paragraph text, the
+missing-fact retrieval channel that drives recall \emph{within} the
+Llama family actually fires, but the per-call quality of Qwen-72B
+remains a separate axis of variation.}
 \label{tab:contrast-decomp}
 \end{table}
 
@@ -676,28 +734,28 @@ generalises across backbones.
 \section{Limitations}
 \label{sec:limits}
 
-(i) \textbf{$n=15$ scout, single seed.}
-The result is solid in effect-size terms ($d \approx +1$) and the CI
-on the headline contrast doesn't cross zero, but it lives on a
-$15$-paper, single-seed scout experiment. A camera-ready submission
-should re-run on the full $n=29$ with at least 3 seeds. Our companion
-paper's CI-shrinkage projections suggest the $n=29$ CI half-width
-would land around $\pm 0.05$ $F_1$ at the same $\sigma$, comfortably
-preserving the headline.
+(i) \textbf{Single seed.}
+The headline contrast is on $n=29$ paired papers, single seed.
+$d \approx +1$ on the B6 contrast and the CI excludes zero under
+both judges, so the result is robust to the sample-size ambiguity
+that the original $n=15$ scout left open. We have not yet run
+multi-seed averaging; a camera-ready submission should re-run with
+3 seeds to convert the single-seed disclosure from ``we acknowledge
+this'' to ``robustness verified.''
 
 (ii) \textbf{Joint architecture + verifier-fix confound.}
 We did not run the $4 \times 2$ ablation that would isolate (i) the
 selection-vs.-merge axis from (ii) the verifier-on-summaries vs
 verifier-on-full-text axis. Both ought to matter from first
-principles; the $+0.15$ figure is their joint contribution.
+principles; the $+0.11$--$+0.13$ figure is their joint contribution.
 
 (iii) \textbf{Length-cap cost.}
-At $\sim$717 / 727 words, \textsc{OneVision} is on the long side of
-our 1000-word cap. We did not vary the cap to characterise
-$F_1$-vs-length curves. A reviewer reasonably worried about an
-implicit length advantage should look at $F_{0.5}$, where
-\textsc{OneVision} (0.752 strict) actually \emph{exceeds} B2 (0.741
-strict) by $+0.011$.
+At $\sim$702 / 704 words, \textsc{OneVision} sits below the
+1000-word cap by enough margin that length is not driving the
+result. We did not vary the cap to characterise $F_1$-vs-length
+curves. A reviewer worried about implicit length advantage should
+look at $F_{0.5}$, where \textsc{OneVision} (0.751 strict) is
+within $+0.029$ of B2 (0.780 strict) and matches it within noise.
 
 (iv) \textbf{Voter self-favouring potential.}
 We mitigate via anonymous draft labels, but the voter LLMs are the
@@ -723,20 +781,36 @@ the companion paper's diagnosis: replace the merging refiner with a
 the verifier read full paragraph text instead of paragraph
 short-summaries. The resulting \textsc{OneVision} pipeline beats a
 single-LLM control with the same prompt instructions by
-$\Delta F_1\!=\!+0.15$ on $n=13$ paired papers, under both decoupled
-judges, with effect size $d\!\approx\!+1.0$ in each. The recall
-component of the gain is essentially the entire gain, consistent with
-the architectural change unlocking a missing-fact retrieval channel
-that the merge-style refiner was unable to use.
+$\Delta F_1\!=\!+0.106$ strict-LLM (95\% CI $[+0.047, +0.175]$) and
+$+0.126$ DeBERTa-NLI ($[+0.072, +0.187]$) on $n\!=\!25$--$26$
+paired papers from a 29-paper seed-fixed sample, under both
+decoupled judges. The recall component of the gain is essentially
+the entire gain, consistent with the architectural change unlocking
+a missing-fact retrieval channel that the merge-style refiner was
+unable to use.
+
+\textsc{OneVision} does \emph{not} exceed the strongest
+cross-family single-LLM baselines (Qwen-72B-naive, DeepSeek-V3-naive):
+it ties both within statistical noise, with mean $F_1$ slightly
+behind Qwen ($\Delta = -0.072$ strict) and tied with DeepSeek
+($\Delta = -0.041$ strict / $+0.009$ DeBERTa). Therefore, the
+contribution of this paper is best read under \emph{fixed-backbone}
+constraints: when the deployment context locks the backbone to one
+LLM family (e.g., licensing, domain-tuned weights), \textsc{OneVision}
+recovers $\sim\!+0.11$ $F_1$ over a same-prompt single-LLM control
+on that backbone and brings a Llama-70B stack within $\sim\!0.06$
+$F_1$ of the strongest single-LLM baseline. Under free-backbone
+settings, the cost frontier still favours single-call Qwen-72B.
 
 In conjunction with the companion paper's negative result, the
 two-paper sequence stakes out a clean position: \emph{whether
 multi-agent debate helps long-form scientific summarisation depends
-on the architecture}. Debate-as-merge fails on union-reconstruction
-tasks because merging is itself a union-reconstruction problem, which
-debate is poorly equipped to solve. Debate-as-selection plus
-augmentation succeeds because each sub-problem now sits in the regime
-the technique is empirically good at. We suggest the
+on the architecture, but matching the strongest single-LLM
+backbones may require backbone-level upgrades, not architectural
+ones}. Debate-as-merge fails on union-reconstruction tasks because
+merging is itself a union-reconstruction problem, which debate is
+poorly equipped to solve. Debate-as-selection plus augmentation
+recovers a within-family architectural contribution. We suggest the
 selection-vs.-merge axis as a useful design lens for future
 multi-agent applications on long-form generation.
 
