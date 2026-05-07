@@ -190,8 +190,8 @@ class OneVisionPipeline:
         # ---------------- Stage 3: single-draft verifier (FULL paragraphs).
         try:
             issues = await self._verifier.run(paper, winning_draft)
-        except LLMError as e:
-            self.log.warning("verifier_failed", err=str(e))
+        except Exception as e:
+            self.log.warning("verifier_failed", err=str(e)[:300], err_type=type(e).__name__)
             issues = []
         self.log.info("issues_raised", count=len(issues))
 
@@ -221,12 +221,31 @@ class OneVisionPipeline:
                 issues_addressed=[],
             )
         else:
-            refiner_out = await self._refiner.run(
-                paper=paper,
-                winning_draft=winning_draft,
-                issues=issues,
-                evidence_bundles=evidence_bundles,
-            )
+            try:
+                refiner_out = await self._refiner.run(
+                    paper=paper,
+                    winning_draft=winning_draft,
+                    issues=issues,
+                    evidence_bundles=evidence_bundles,
+                )
+            except Exception as e:
+                # Fall back to the winning draft if the refiner LLM call /
+                # JSON validation fails. We don't lose the run; the output
+                # is still the best draft selected by voting.
+                self.log.warning(
+                    "refiner_failed_using_draft",
+                    err=str(e)[:300],
+                    err_type=type(e).__name__,
+                )
+                refiner_out = RefinerOutput(
+                    tldr=winning_draft.tldr,
+                    core_idea=winning_draft.core_idea,
+                    key_contributions=winning_draft.key_contributions,
+                    method=winning_draft.method,
+                    experiments=winning_draft.experiments,
+                    limitations=winning_draft.limitations,
+                    issues_addressed=[],
+                )
 
         # ---------------- Assemble metadata.
         evidence_paragraphs_used = sorted({
@@ -264,7 +283,11 @@ class OneVisionPipeline:
             },
             truncated=truncated,
             failed_initial_agents=failed_agent_ids,
-            consensus_breakdown={"voter_winner": transcript.winner_agent_id},
+            # Voter info lives in the separate VotingTranscript returned alongside.
+            # consensus_breakdown's schema is dict[str, int] so we cannot store
+            # the agent_id string here without changing the FinalSummaryMetadata
+            # schema. Leave empty.
+            consensus_breakdown={},
         )
 
         final = FinalSummary(
@@ -299,9 +322,17 @@ class OneVisionPipeline:
         async def _safe(agent: InitialSummarizerAgent) -> InitialSummary | str:
             try:
                 return await agent.run(paper)
-            except LLMError as e:
+            except (LLMError, Exception) as e:
+                # Catch broadly: open-source models on OpenRouter sometimes
+                # return malformed JSON that pydantic can't validate, which
+                # raises ValidationError (NOT LLMError). Treat any failure
+                # as a soft drop — the voter and rest of pipeline can run
+                # with 2 of 3 drafts (falls back to trivial transcript).
                 self.log.warning(
-                    "initial_summarizer_failed", agent=agent.agent_id, err=str(e)
+                    "initial_summarizer_failed",
+                    agent=agent.agent_id,
+                    err=str(e)[:300],
+                    err_type=type(e).__name__,
                 )
                 return agent.agent_id
 
