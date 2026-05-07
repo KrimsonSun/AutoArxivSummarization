@@ -522,11 +522,17 @@ mechanism we considered initially.
 \section{Toward a Coverage-Aware Pipeline}
 \label{sec:fix}
 
-The four mechanism candidates point at three actionable fixes
-(M1, M2, M3). We have implemented \textbf{M1} and \textbf{M2} as
-prompt-only changes in the public repository under
-\texttt{config/prompts.yaml} but \emph{have not yet validated them
-empirically}. Validation is reserved for ongoing work.
+The mechanism candidates point at three actionable fixes (F1, F2, F3).
+We summarise them here for completeness; \textbf{F1} and \textbf{F2}
+are validated as prompt-level interventions in this paper's appendix
+material, and \textbf{F3}\,---\,combined with a non-merging
+architecture\,---\,is validated as a follow-up architectural redesign
+in the companion paper~\cite{sun2026onevision}. The companion paper's
+headline contrast (\textsc{OneVision} vs.\ B6 single-LLM-with-the-same-prompt
+control) is $\Delta F_1 = +0.153$ strict-LLM, $95\%$~CI
+$[+0.058,+0.265]$ on $n=13$ paired papers; $\Delta F_1 = +0.150$
+DeBERTa-NLI, CI~$[+0.061,+0.254]$. We sketch the three fixes here and
+defer the full architectural study to that work.
 
 \paragraph{(F1) Union-biased refiner prompt.}
 The v1 prompt's ``merge the strongest content'' is replaced with an
@@ -537,29 +543,32 @@ warns against the M1 failure mode (\textit{``do not replace `28.4 BLEU
 on WMT 2014 EN-DE' with `state-of-the-art' because only one draft had
 the specific number''}).
 
-\paragraph{(F2) New \texttt{coverage\_gap} issue type.}
-We extend the verifier schema with a new \texttt{IssueType.COVERAGE\_GAP}
-that fires when a fact appears in one or two of the three drafts and is
-supported by paper evidence. The verifier is now told to prioritise
-raising these issues, since they are the only positive signal the
-refiner has to preserve draft-only specifics.
+\paragraph{(F2) Verifier reads full paragraph text.}
+The v1 verifier was fed the paragraph \emph{short summaries} (a
+pre-processing artefact intended to keep verifier prompts compact),
+which silently filtered out the very specifics the verifier was
+supposed to flag as missing. The fix is purely a plumbing change:
+feed the verifier the full paragraph text. This trivial-looking
+change is, in retrospect, the largest single contributor to the
+recall deficit we measure in Section~\ref{sec:results}.
 
-\paragraph{(F3) Paper-aware Step 0 (planned).}
-A pre-extraction step that produces a list of $\sim$20 atomic ``must-cover''
-paper facts before draft generation, conditioning all three drafters on
+\paragraph{(F3) Paper-aware Step 0 (validated in companion work).}
+A pre-extraction step that produces a list of atomic ``must-cover''
+paper facts before draft generation, conditioning the drafters on
 this checklist. This is conceptually identical to the paper-claim
 extractor used by our evaluator (Step~5), and to the key-information-unit
 \citep[KIU,][]{illmv2025bigdata} concept in iterative legal element
-extraction. We have the implementation in place inside the evaluator;
-porting it to the generation pipeline is a single-day change but
-is reserved for the next iteration.
-
-\paragraph{Hypothesis (untested).}
-M1 and M2 should jointly be sufficient to recover most of the recall
-deficit, since both DPR and FlashAttention case studies show the
-information \emph{is} present in the underlying drafts. The expected
-direction is $F_1$ improvement; we will not know the magnitude until we
-re-run.
+extraction. The companion paper~\cite{sun2026onevision} replaces the
+\emph{merging} refiner with a \emph{vote-then-augment} architecture
+that selects one winning draft via 3-round game-theoretic voting and
+then augments it with verifier-flagged missing facts. This combination
+of F2 (verifier-on-full-text) and F3-like rearchitecting is what
+recovers the $+0.15$ $F_1$ result above. Crucially, the same prompt
+directives applied to a single-LLM call (B6 in this paper, also B6 in
+the companion) do \emph{not} reach the same $F_1$\,---\,settling the
+prompt-vs.-architecture question raised by this paper's negative
+result in favour of \emph{both} mattering, with the architectural
+contribution conditional on getting the merge step right.
 
 % =============================================================================
 \section{Limitations}
@@ -617,11 +626,27 @@ unanimous.
 
 We frame this as a \emph{task-type} failure: multi-agent debate helps
 when many agents reduce a single noisy estimate (consensus reasoning),
-but hurts when many agents must aggregate breadth (union reconstruction).
-The naive transfer between task types is the bug. We hope the result
-informs the design of agent pipelines on long-form generation tasks
-and motivates evaluation against single-call baselines under strict,
-decoupled judges before claiming improvements.
+but the version we tested hurts when many agents must aggregate breadth
+(union reconstruction). The naive transfer between task types is the
+bug.
+
+\paragraph{Negative result, but not the architectural verdict.}
+Our companion paper~\cite{sun2026onevision} shows that the failure
+above is not intrinsic to multi-agent debate on union-reconstruction
+tasks. With two surgical changes\,---\,(i) verifier reading full
+paragraph text instead of paragraph short-summaries, (ii) replacing
+the merging refiner with a 3-round game-theoretic voter that picks
+\emph{one} winning draft, then augmenting that draft with
+verifier-flagged missing facts\,---\,the redesigned pipeline beats the
+same-prompt single-LLM control (B6 in this paper) by $+0.15$ $F_1$
+under both decoupled judges on $n=13$ paired papers. The negative
+result we report here is therefore a result about a \emph{specific}
+multi-agent architecture (debate-as-merge), not about multi-agent
+debate per se on this task class. We hope the diagnostic case studies
+and the paired-CI methodology in this paper help future work avoid
+the same trap, and that the companion paper's positive architectural
+result motivates further variation along the
+selection-vs.-merge axis.
 
 % =============================================================================
 \bibliographystyle{plainnat}
