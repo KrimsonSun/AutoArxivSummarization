@@ -19,10 +19,27 @@ class VotingSpec(BaseModel):
     seed: int = 42
 
 
+class RefinementSpec(BaseModel):
+    """Stage 3-5 (verify / retrieve / refine) loop config.
+
+    rounds=1 = single-pass refinement (the v1 default).
+    rounds>1 = iterative: each round's output becomes the next round's
+              draft input to the verifier.
+
+    use_winner_as_refiner=True replaces the static `pipeline_llm` refiner
+    with the LLM client of the agent that won Stage 2 voting. This avoids
+    the v1 failure mode where a Llama-based refiner edited Qwen drafts
+    and degraded their specifics.
+    """
+    rounds: int = 1
+    use_winner_as_refiner: bool = False
+
+
 class PipelineSection(BaseModel):
     initial_agents: list[AgentSpec]
     pipeline_llm: AgentSpec
     voting: VotingSpec = Field(default_factory=VotingSpec)
+    refinement: RefinementSpec = Field(default_factory=RefinementSpec)
     max_summary_words: int = Field(
         default=1000,
         description="Hard word cap applied to drafts AND the final summary.",

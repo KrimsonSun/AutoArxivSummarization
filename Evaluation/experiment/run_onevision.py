@@ -56,15 +56,24 @@ from experiment.run import download_paper, run_baselines_for_paper, evaluate_sum
 ONEVISION_VENV_PY = ONEVISION_ROOT / ".venv" / "bin" / "python"
 
 
-async def run_onevision(pdf_path: Path, arxiv_id: str) -> Path:
-    """Run the OneVision pipeline on the PDF, return path to written JSON."""
+async def run_onevision(
+    pdf_path: Path,
+    arxiv_id: str,
+    method_name: str = "Ours_onevision",
+    config_path: str = "config/default.yaml",
+) -> Path:
+    """Run the OneVision pipeline on the PDF, return path to written JSON.
+
+    method_name controls the output filename so we can run multiple
+    OneVision variants side-by-side (e.g., default vs iterative) without
+    clobbering each other.
+    """
     sum_dir = SUMMARIES_DIR / arxiv_id
     sum_dir.mkdir(parents=True, exist_ok=True)
-    out_json = sum_dir / "Ours_onevision.json"
-    out_vote = sum_dir / "Ours_onevision.voting.json"
+    out_json = sum_dir / f"{method_name}.json"
 
     if out_json.exists() and out_json.stat().st_size > 1000:
-        log(f"  cached Ours_onevision.json")
+        log(f"  cached {method_name}.json")
         return out_json
 
     if not ONEVISION_VENV_PY.exists():
@@ -78,7 +87,7 @@ async def run_onevision(pdf_path: Path, arxiv_id: str) -> Path:
         str(ONEVISION_VENV_PY),
         "-m", "src.cli",
         "--pdf", str(pdf_path),
-        "--config", "config/default.yaml",
+        "--config", config_path,
         "--skip-healthcheck",
         "--out", str(out_json),
     ]
@@ -91,41 +100,63 @@ async def run_onevision(pdf_path: Path, arxiv_id: str) -> Path:
     )
     stdout, stderr = await proc.communicate()
     if proc.returncode != 0:
-        log(f"  OneVision FAILED for {arxiv_id}:\n{stderr.decode()[-2000:]}")
-        # Write an error stub so we don't retry forever.
+        log(f"  OneVision ({method_name}) FAILED for {arxiv_id}:\n{stderr.decode()[-2000:]}")
         out_json.write_text(json.dumps({"error": True, "stderr": stderr.decode()[-2000:]}, indent=2))
     else:
-        log(f"  OneVision OK for {arxiv_id}")
+        log(f"  OneVision ({method_name}) OK for {arxiv_id}")
     return out_json
 
 
 # ---------------------------------------------------------------------------
 
-async def process_one_paper(arxiv_id: str) -> dict[str, Path]:
+async def process_one_paper(
+    arxiv_id: str,
+    method_name: str = "Ours_onevision",
+    config_path: str = "config/default.yaml",
+    skip_baselines: bool = False,
+) -> dict[str, Path]:
     log(f"=== {arxiv_id} ===")
     pdf = download_paper(arxiv_id)
     summary_paths: dict[str, Path] = {}
 
-    # OneVision summary.
-    summary_paths["Ours_onevision"] = await run_onevision(pdf, arxiv_id)
-    # Reuse baselines (B1..B6) — generates only what's not cached.
-    bp = await run_baselines_for_paper(pdf, arxiv_id)
-    summary_paths.update(bp)
+    summary_paths[method_name] = await run_onevision(
+        pdf, arxiv_id, method_name=method_name, config_path=config_path
+    )
+    if not skip_baselines:
+        bp = await run_baselines_for_paper(pdf, arxiv_id)
+        summary_paths.update(bp)
     return summary_paths
 
 
 async def main() -> None:
-    n = int(sys.argv[1]) if len(sys.argv) > 1 else 15
-    seed = int(sys.argv[2]) if len(sys.argv) > 2 else 42
-    paper_ids = sample(n, seed=seed)
-    log(f"sampled {len(paper_ids)} papers (seed={seed}): {paper_ids}")
+    # Optional --method-name and --config flags via simple parsing.
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("n", type=int, nargs="?", default=15)
+    parser.add_argument("seed", type=int, nargs="?", default=42)
+    parser.add_argument("--method-name", default="Ours_onevision",
+                        help="Output filename stem for OneVision summaries.")
+    parser.add_argument("--config", default="config/default.yaml",
+                        help="OneVision config path (relative to Refine-OneVision-Summary/).")
+    parser.add_argument("--skip-baselines", action="store_true",
+                        help="Don't (re)run B1-B6 baselines for these papers.")
+    args = parser.parse_args()
+
+    paper_ids = sample(args.n, seed=args.seed)
+    log(f"sampled {len(paper_ids)} papers (seed={args.seed}): {paper_ids}")
+    log(f"method_name={args.method_name}  config={args.config}  skip_baselines={args.skip_baselines}")
 
     concurrency = int(os.environ.get("EXPERIMENT_CONCURRENCY", "4"))
     sem = asyncio.Semaphore(concurrency)
 
     async def _gated(pid: str) -> None:
         async with sem:
-            await process_one_paper(pid)
+            await process_one_paper(
+                pid,
+                method_name=args.method_name,
+                config_path=args.config,
+                skip_baselines=args.skip_baselines,
+            )
 
     await asyncio.gather(*[_gated(pid) for pid in paper_ids])
     log("all papers processed")

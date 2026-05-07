@@ -64,18 +64,30 @@ class PipelineError(RuntimeError):
 
 
 class OneVisionPipeline:
-    """Vote-then-augment pipeline (5 stages)."""
+    """Vote-then-augment pipeline (5 stages, optionally iterative)."""
 
     def __init__(
         self,
         config: PipelineConfig,
-        max_words: int = DEFAULT_MAX_WORDS,
-        voting_rounds: int = 3,
-        voting_seed: int = 42,
+        max_words: int | None = None,
     ):
         self.config = config
         self.log = get_logger("onevision_pipeline")
-        self.max_words = max_words
+        # max_words: prefer caller arg, else config, else default.
+        self.max_words = (
+            max_words
+            if max_words is not None
+            else (
+                getattr(config.pipeline, "max_summary_words", None)
+                or DEFAULT_MAX_WORDS
+            )
+        )
+        # Refinement loop config.
+        ref = getattr(config.pipeline, "refinement", None)
+        self.refinement_rounds = ref.rounds if ref is not None else 1
+        self.use_winner_as_refiner = (
+            ref.use_winner_as_refiner if ref is not None else False
+        )
 
         # Build the three initial summarizer clients.
         self._initial_clients: list[tuple[str, LLMClient]] = []
@@ -98,19 +110,38 @@ class OneVisionPipeline:
             for aid, c in self._initial_clients
         ]
         # Voter uses the same 3 LLMs as the drafters.
+        voting_cfg = getattr(config.pipeline, "voting", None)
         self._voter = GameTheoryVoter(
             voters=[
                 VoterClient(agent_id=aid, client=c)
                 for aid, c in self._initial_clients
             ],
-            rounds=voting_rounds,
-            seed=voting_seed,
+            rounds=voting_cfg.rounds if voting_cfg else 3,
+            seed=voting_cfg.seed if voting_cfg else 42,
         )
         self._verifier = SingleDraftVerifierAgent(client=self._pipeline_client)
         self._retriever = EvidenceRetrieverAgent(client=self._pipeline_client)
-        self._refiner = SingleDraftRefinerAgent(
+        # Default refiner uses pipeline_llm; the run() method may swap it
+        # for the winning agent's client per-paper if use_winner_as_refiner.
+        self._default_refiner = SingleDraftRefinerAgent(
             client=self._pipeline_client, max_words=self.max_words
         )
+
+    def _refiner_for_winner(self, winner_agent_id: str) -> SingleDraftRefinerAgent:
+        """Return a refiner that uses the winning agent's client, OR the
+        default pipeline_llm refiner if use_winner_as_refiner is off / the
+        winner has no matching initial client."""
+        if not self.use_winner_as_refiner:
+            return self._default_refiner
+        for aid, client in self._initial_clients:
+            if aid == winner_agent_id:
+                return SingleDraftRefinerAgent(client=client, max_words=self.max_words)
+        # Winner not found → fall back.
+        self.log.warning(
+            "winner_client_not_found_fallback_default_refiner",
+            winner=winner_agent_id,
+        )
+        return self._default_refiner
 
     # --------------------------------------------------------- public API
 
@@ -187,65 +218,109 @@ class OneVisionPipeline:
             borda=transcript.per_label_borda,
         )
 
-        # ---------------- Stage 3: single-draft verifier (FULL paragraphs).
-        try:
-            issues = await self._verifier.run(paper, winning_draft)
-        except Exception as e:
-            self.log.warning("verifier_failed", err=str(e)[:300], err_type=type(e).__name__)
-            issues = []
-        self.log.info("issues_raised", count=len(issues))
-
-        # ---------------- Stage 4: per-issue evidence retrieval, parallel.
-        evidence_bundles: list[EvidenceBundle]
-        if issues:
-            evidence_bundles = await asyncio.gather(
-                *[self._retriever.run(issue, paper) for issue in issues]
-            )
-        else:
-            evidence_bundles = []
+        # ---------------- Stages 3-5: iterative refine loop.
+        # current_draft starts as the winning draft. Each round runs
+        # verify → retrieve → refine on the current_draft, and the
+        # refiner output becomes the next round's current_draft.
+        # The refiner used here is dynamic: if use_winner_as_refiner is
+        # set, it's the winning agent's client; otherwise the static
+        # pipeline_llm refiner.
+        refiner = self._refiner_for_winner(transcript.winner_agent_id)
         self.log.info(
-            "evidence_collected",
-            issues_with_evidence=sum(1 for b in evidence_bundles if b.evidence),
+            "refiner_selected",
+            winner_agent=transcript.winner_agent_id,
+            winner_refines=self.use_winner_as_refiner,
+            refinement_rounds=self.refinement_rounds,
         )
 
-        # ---------------- Stage 5: single-draft refiner.
-        if not issues:
-            # No verifier issues → use the winning draft as-is (still apply word cap).
-            refiner_out = RefinerOutput(
-                tldr=winning_draft.tldr,
-                core_idea=winning_draft.core_idea,
-                key_contributions=winning_draft.key_contributions,
-                method=winning_draft.method,
-                experiments=winning_draft.experiments,
-                limitations=winning_draft.limitations,
-                issues_addressed=[],
-            )
-        else:
+        current_draft: InitialSummary = winning_draft
+        all_issues: list[Issue] = []
+        all_evidence: list[EvidenceBundle] = []
+        issues_addressed_total: list[str] = []
+
+        for round_idx in range(1, self.refinement_rounds + 1):
             try:
-                refiner_out = await self._refiner.run(
-                    paper=paper,
-                    winning_draft=winning_draft,
-                    issues=issues,
-                    evidence_bundles=evidence_bundles,
-                )
+                issues = await self._verifier.run(paper, current_draft)
             except Exception as e:
-                # Fall back to the winning draft if the refiner LLM call /
-                # JSON validation fails. We don't lose the run; the output
-                # is still the best draft selected by voting.
                 self.log.warning(
-                    "refiner_failed_using_draft",
+                    "verifier_failed",
+                    round=round_idx,
                     err=str(e)[:300],
                     err_type=type(e).__name__,
                 )
-                refiner_out = RefinerOutput(
-                    tldr=winning_draft.tldr,
-                    core_idea=winning_draft.core_idea,
-                    key_contributions=winning_draft.key_contributions,
-                    method=winning_draft.method,
-                    experiments=winning_draft.experiments,
-                    limitations=winning_draft.limitations,
-                    issues_addressed=[],
+                issues = []
+            self.log.info(
+                "issues_raised",
+                round=round_idx,
+                count=len(issues),
+            )
+
+            if not issues:
+                # Nothing to fix this round; further rounds also won't have
+                # anything to fix on the same paper, so short-circuit.
+                self.log.info("refine_loop_short_circuit_no_issues", round=round_idx)
+                break
+
+            evidence_bundles = await asyncio.gather(
+                *[self._retriever.run(issue, paper) for issue in issues]
+            )
+            self.log.info(
+                "evidence_collected",
+                round=round_idx,
+                issues_with_evidence=sum(1 for b in evidence_bundles if b.evidence),
+            )
+
+            try:
+                refiner_out_round = await refiner.run(
+                    paper=paper,
+                    winning_draft=current_draft,
+                    issues=issues,
+                    evidence_bundles=evidence_bundles,
                 )
+                # Hard-cap the round output so the next round sees ≤ max_words.
+                current_draft = InitialSummary(
+                    agent_id=current_draft.agent_id,
+                    tldr=refiner_out_round.tldr,
+                    core_idea=refiner_out_round.core_idea,
+                    key_contributions=refiner_out_round.key_contributions,
+                    method=refiner_out_round.method,
+                    experiments=refiner_out_round.experiments,
+                    limitations=refiner_out_round.limitations,
+                )
+                current_draft = truncate_to_word_cap(current_draft, self.max_words)
+                issues_addressed_total.extend(refiner_out_round.issues_addressed)
+                self.log.info(
+                    "refine_round_complete",
+                    round=round_idx,
+                    n_issues=len(issues),
+                    n_addressed=len(refiner_out_round.issues_addressed),
+                )
+            except Exception as e:
+                self.log.warning(
+                    "refiner_failed_keeping_current_draft",
+                    round=round_idx,
+                    err=str(e)[:300],
+                    err_type=type(e).__name__,
+                )
+                # current_draft is unchanged for next round.
+                break
+
+            all_issues.extend(issues)
+            all_evidence.extend(evidence_bundles)
+
+        # Construct a RefinerOutput-shaped record for downstream metadata code.
+        refiner_out = RefinerOutput(
+            tldr=current_draft.tldr,
+            core_idea=current_draft.core_idea,
+            key_contributions=current_draft.key_contributions,
+            method=current_draft.method,
+            experiments=current_draft.experiments,
+            limitations=current_draft.limitations,
+            issues_addressed=issues_addressed_total,
+        )
+        # Re-bind names used by the metadata-assembly code below.
+        issues = all_issues
+        evidence_bundles = all_evidence
 
         # ---------------- Assemble metadata.
         evidence_paragraphs_used = sorted({
