@@ -1,0 +1,524 @@
+{
+  "schema_version": "1.0",
+  "description": "Experiment registry for AutoArxivSummarization. Each entry covers one paired comparison or one engineering test. Append-only; never edit existing entries (add a new one if a re-run gives different numbers). Categories: research_baseline | engineering_test | design_iteration | planned. Linked lessons reference docs/LESSONS.md.",
+  "entries": [
+    {
+      "id": "E1",
+      "category": "research_baseline",
+      "title": "v1 Ours vs B1 Llama-70B-naive (n=29 paired, strict-LLM)",
+      "status": "concluded_negative",
+      "config": {
+        "pipeline": "RefinedSummarization v1",
+        "baseline": "B1_llama_naive",
+        "judge": "strict-LLM",
+        "model_judge": "meta-llama/llama-3.3-70b-instruct",
+        "n_papers": 29,
+        "seed": 42,
+        "n_paired_valid": 27
+      },
+      "metrics": {
+        "delta_f1_mean": -0.05,
+        "ci_low": -0.11,
+        "ci_high": 0.01,
+        "cohens_d": -0.30,
+        "wins": 8,
+        "losses": 16,
+        "ties": 3,
+        "significant": false,
+        "note": "CI crosses zero — same-family Llama tie."
+      },
+      "linked_lessons": ["L1", "L7"],
+      "source": "RefinedSummarization/paper/main.tex Table 2; paper/stats.json"
+    },
+    {
+      "id": "E2",
+      "category": "research_baseline",
+      "title": "v1 Ours vs B2 Qwen-72B-naive (n=29 paired, strict-LLM)",
+      "status": "concluded_negative",
+      "config": {
+        "pipeline": "RefinedSummarization v1",
+        "baseline": "B2_qwen_naive",
+        "judge": "strict-LLM",
+        "n_papers": 29,
+        "seed": 42,
+        "n_paired_valid": 28
+      },
+      "metrics": {
+        "delta_f1_mean": -0.20,
+        "ci_low": -0.25,
+        "ci_high": -0.14,
+        "cohens_d": -1.29,
+        "wins": 1,
+        "losses": 26,
+        "ties": 1,
+        "significant": true,
+        "note": "Cross-family Llama → Qwen. Headline negative result of the paper."
+      },
+      "linked_lessons": ["L1", "L7"],
+      "source": "RefinedSummarization/paper/main.tex Table 2; paper/stats.json"
+    },
+    {
+      "id": "E3",
+      "category": "research_baseline",
+      "title": "v1 Ours vs B3 DeepSeek-V3-naive (n=29 paired, strict-LLM)",
+      "status": "concluded_negative",
+      "config": {
+        "pipeline": "RefinedSummarization v1",
+        "baseline": "B3_deepseek_naive",
+        "judge": "strict-LLM",
+        "n_papers": 29,
+        "seed": 42,
+        "n_paired_valid": 27
+      },
+      "metrics": {
+        "delta_f1_mean": -0.16,
+        "ci_low": -0.21,
+        "ci_high": -0.10,
+        "cohens_d": -1.09,
+        "wins": 4,
+        "losses": 22,
+        "ties": 1,
+        "significant": true
+      },
+      "linked_lessons": ["L1"],
+      "source": "RefinedSummarization/paper/main.tex Table 2"
+    },
+    {
+      "id": "E4",
+      "category": "research_baseline",
+      "title": "v1 Ours vs B4 Llama-8B-naive (n=29 paired, strict-LLM)",
+      "status": "concluded_negative",
+      "config": {
+        "pipeline": "RefinedSummarization v1",
+        "baseline": "B4_llama8b_naive",
+        "judge": "strict-LLM",
+        "n_papers": 29,
+        "seed": 42
+      },
+      "metrics": {
+        "delta_f1_mean": -0.05,
+        "ci_low": -0.10,
+        "ci_high": -0.01,
+        "cohens_d": -0.43,
+        "wins": 8,
+        "losses": 13,
+        "ties": 6,
+        "significant": true,
+        "note": "Just barely sig; small-effect; both Llama family."
+      },
+      "linked_lessons": ["L1"],
+      "source": "RefinedSummarization/paper/main.tex Table 2"
+    },
+    {
+      "id": "E5",
+      "category": "research_baseline",
+      "title": "v1 Ours vs B5 Llama-70B-structured (n=29 paired, strict-LLM)",
+      "status": "concluded_negative",
+      "config": {
+        "pipeline": "RefinedSummarization v1",
+        "baseline": "B5_llama_structured",
+        "judge": "strict-LLM",
+        "n_papers": 29,
+        "seed": 42
+      },
+      "metrics": {
+        "delta_f1_mean": -0.04,
+        "ci_low": -0.08,
+        "ci_high": 0.01,
+        "cohens_d": -0.27,
+        "wins": 9,
+        "losses": 17,
+        "ties": 2,
+        "significant": false
+      },
+      "linked_lessons": ["L1", "L6"],
+      "source": "RefinedSummarization/paper/main.tex Table 2"
+    },
+    {
+      "id": "E6",
+      "category": "research_baseline",
+      "title": "M4 (schema-rewards-abstraction) test: B5 Llama-70B-structured vs B1 Llama-70B-naive",
+      "status": "concluded_negative",
+      "config": {
+        "method_a": "B5_llama_structured",
+        "method_b": "B1_llama_naive",
+        "judge": "strict-LLM",
+        "n_papers": 29
+      },
+      "metrics": {
+        "delta_f1_mean": -0.04,
+        "ci_low": "[VERIFY: paper Table on B5 vs B1 directly]",
+        "ci_high": "[VERIFY]",
+        "significant": false,
+        "interpretation": "If structured schema rewarded abstraction, B5 should systematically underperform B1; it doesn't. M4 retracted."
+      },
+      "linked_lessons": ["L6"],
+      "source": "Inferred from RefinedSummarization/paper/stats.json per_method block; B5 mean F1 = 0.405, B1 mean F1 = 0.418. Direct paired diff [VERIFY]."
+    },
+    {
+      "id": "E7",
+      "category": "design_iteration",
+      "title": "DPR case study (Karpukhin et al., 2004.04906): refiner intersection bias",
+      "status": "concluded_diagnostic",
+      "config": {
+        "paper_id": "2004.04906",
+        "judge": "strict-LLM"
+      },
+      "metrics_paper_section_7_case_study": {
+        "ours_v1_f1_against_paper_claims": "[VERIFY: paper §7 quotes 0.18; my OneVision rerun on 2004.04906 gives Ours_v1 F1 = 0.491. The 0.18 figure may use a different paper-claim-coverage metric.]",
+        "b2_qwen_f1_against_paper_claims": "[VERIFY: paper §7 quotes 0.82; my data shows B2 F1 = 0.049. Significant discrepancy.]",
+        "fact_coverage_ours_pct": 10,
+        "fact_coverage_b2_pct": 70,
+        "atomic_claim_count_ours": 23,
+        "atomic_claim_count_b2": 24
+      },
+      "linked_lessons": ["L5"],
+      "source": "RefinedSummarization/paper/main.tex §7 Diagnosis case study"
+    },
+    {
+      "id": "E8",
+      "category": "design_iteration",
+      "title": "Verifier saturation: mean issues raised per paper",
+      "status": "concluded_diagnostic",
+      "config": {
+        "n_papers": 29,
+        "verifier_max_issues_cap": 12
+      },
+      "metrics": {
+        "mean_issues_raised": "[VERIFY: paper §7 M2 quotes 12.0; recompute by reading issues_raised from outputs/experiment/evals_strict/<id>/Ours.eval.json metadata]",
+        "mean_issues_addressed": "[VERIFY: 12.0 of 12.0 raised, per paper §7 M2]",
+        "paper_recall_mean": 0.24,
+        "interpretation": "Refiner self-reports 100% issues addressed but recall stays low — claim-of-fix is aspirational."
+      },
+      "linked_lessons": ["L4"],
+      "source": "RefinedSummarization/paper/main.tex §7 M2"
+    },
+    {
+      "id": "E9",
+      "category": "research_baseline",
+      "title": "v1 vs v2 Ours (prompt-only swap, n=6 paired, strict-LLM)",
+      "status": "concluded_positive",
+      "config": {
+        "pipeline_a": "Ours_v1 (intersection-prompt refiner)",
+        "pipeline_b": "Ours_v2 (union-prompt refiner)",
+        "judge": "strict-LLM",
+        "n_papers": 7,
+        "n_paired_valid": 6,
+        "excluded": ["2305.10403 (PaLM-2; recall-checker truncation)"]
+      },
+      "metrics": {
+        "delta_f1_mean_v2_minus_v1": 0.123,
+        "ci_low": 0.034,
+        "ci_high": 0.217,
+        "cohens_d": 0.97,
+        "wins": 5,
+        "losses": 1,
+        "ties": 0,
+        "significant": true
+      },
+      "linked_lessons": ["L3", "L8"],
+      "source": "Evaluation/experiment/compare_v1_v2.py output; documented in companion paper section on v2 results"
+    },
+    {
+      "id": "E10",
+      "category": "research_baseline",
+      "title": "OneVision v1 vs B6 (architecture-vs-same-prompt-control, n=29 paired, strict-LLM)",
+      "status": "concluded_positive",
+      "config": {
+        "pipeline": "Refine-OneVision-Summary v1 (single-pass, static Llama refiner)",
+        "baseline": "B6_llama_v2prompt",
+        "judge": "strict-LLM",
+        "n_papers": 29,
+        "n_paired_valid": 25,
+        "seed": 42
+      },
+      "metrics": {
+        "delta_f1_mean": 0.106,
+        "ci_low": 0.047,
+        "ci_high": 0.175,
+        "significant": true,
+        "delta_p_mean": 0.054,
+        "delta_r_mean": 0.101
+      },
+      "linked_lessons": ["L1", "L8", "L9"],
+      "source": "Evaluation/outputs/experiment/onevision_summary.json; PR #4 commit 550c4b7"
+    },
+    {
+      "id": "E11",
+      "category": "research_baseline",
+      "title": "OneVision v1 vs B6 (DeBERTa-NLI judge, n=29 paired)",
+      "status": "concluded_positive",
+      "config": {
+        "pipeline": "Refine-OneVision-Summary v1",
+        "baseline": "B6_llama_v2prompt",
+        "judge": "DeBERTa-NLI",
+        "model_judge": "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli",
+        "n_papers": 29,
+        "n_paired_valid": 26,
+        "seed": 42
+      },
+      "metrics": {
+        "delta_f1_mean": 0.126,
+        "ci_low": 0.072,
+        "ci_high": 0.187,
+        "significant": true,
+        "delta_p_mean": 0.092,
+        "delta_r_mean": 0.126
+      },
+      "linked_lessons": ["L1", "L8", "L9"],
+      "source": "Evaluation/outputs/experiment/onevision_summary.json"
+    },
+    {
+      "id": "E12",
+      "category": "research_baseline",
+      "title": "OneVision v1 vs B2 Qwen (n=29 paired, strict-LLM) — strongest cross-family baseline",
+      "status": "concluded_tie",
+      "config": {
+        "pipeline": "Refine-OneVision-Summary v1",
+        "baseline": "B2_qwen_naive",
+        "judge": "strict-LLM",
+        "n_papers": 29,
+        "n_paired_valid": 24
+      },
+      "metrics": {
+        "delta_f1_mean": -0.072,
+        "ci_low": -0.136,
+        "ci_high": 0.004,
+        "significant": false,
+        "note": "CI just touches zero from below; cannot reject the null that OneVision loses to Qwen-72B-naive."
+      },
+      "linked_lessons": ["L1", "L9"],
+      "source": "Evaluation/outputs/experiment/onevision_summary.json"
+    },
+    {
+      "id": "E13",
+      "category": "research_baseline",
+      "title": "OneVision v2 (K=3 refine + winner-as-refiner) vs B6 (n=15 paired strict)",
+      "status": "concluded_positive",
+      "config": {
+        "pipeline": "Refine-OneVision-Summary v2 (K=3, use_winner_as_refiner=true)",
+        "baseline": "B6_llama_v2prompt",
+        "judge": "strict-LLM",
+        "n_papers_attempted": 29,
+        "n_completed": 24,
+        "n_paired_valid_strict": 15,
+        "n_paired_valid_deberta": 21,
+        "killed_papers": ["2205.14135 FlashAttention", "2203.15556 CoT", "2210.03629 ReAct", "2305.18290 DPO?", "2310.06825 Mistral-7B"],
+        "kill_reason": "wall-clock ceiling (5+ hour stalls on long papers; subprocess timeout not configured)"
+      },
+      "metrics": {
+        "delta_f1_mean_strict": 0.177,
+        "ci_low_strict": 0.086,
+        "ci_high_strict": 0.278,
+        "delta_f1_mean_deberta": 0.140,
+        "ci_low_deberta": 0.085,
+        "ci_high_deberta": 0.203,
+        "significant": true
+      },
+      "linked_lessons": ["L1", "L9"],
+      "source": "Evaluation/outputs/experiment/onevision_summary.json (entry written 2026-05-07); commit 550c4b7"
+    },
+    {
+      "id": "E14",
+      "category": "research_baseline",
+      "title": "OneVision v2 vs v1 paired (does iterative + winner-as-refiner statistically beat single-pass v1?)",
+      "status": "concluded_tie",
+      "config": {
+        "pipeline_a": "OneVision v2",
+        "pipeline_b": "OneVision v1",
+        "n_paired_valid_strict": 15,
+        "n_paired_valid_deberta": 21
+      },
+      "metrics": {
+        "delta_f1_mean_strict": 0.010,
+        "ci_low_strict": -0.048,
+        "ci_high_strict": 0.068,
+        "delta_f1_mean_deberta": 0.008,
+        "ci_low_deberta": -0.031,
+        "ci_high_deberta": 0.048,
+        "significant": false,
+        "note": "Mean v2-F1 (0.653 strict) is +0.069 above mean v1-F1 (0.584), but on overlapping papers (after dropping the 5 killed long papers from v2) the paired difference is +0.010 ns. Selection bias: the killed long papers were likely v2's strongest case."
+      },
+      "linked_lessons": ["L9"],
+      "source": "Evaluation/outputs/experiment/onevision_summary.json"
+    },
+    {
+      "id": "E15",
+      "category": "design_iteration",
+      "title": "Voter behaviour audit: who wins Stage-2 voting (n=28 transcripts)",
+      "status": "concluded_diagnostic",
+      "config": {
+        "pipeline": "Refine-OneVision-Summary",
+        "voter": "GameTheoryVoter, 3 rounds, anonymous Borda",
+        "n_voting_transcripts": 28
+      },
+      "metrics": {
+        "qwen_wins": 26,
+        "llama_wins": 2,
+        "deepseek_wins": 0,
+        "voter_picked_actually_strongest_baseline": "14 / 27",
+        "onevision_best_of_v1v2_beats_strongest_baseline": "7 / 27",
+        "onevision_ties": "3 / 27",
+        "onevision_loses": "17 / 27"
+      },
+      "interpretation": "The voter is essentially a static Qwen-bias, not a per-paper model selector. The +0.106 OneVision-vs-B6 contrast decomposes mostly as 'voter picks Qwen base instead of Llama base' (~+0.16 F1) minus 'augmenter degrades the Qwen draft' (~−0.06 F1).",
+      "linked_lessons": ["L9"],
+      "source": "Per-paper audit done in chat 2026-05-07 (not yet saved as a script). Voting transcripts at outputs/experiment/summaries/<id>/Ours_onevision.voting.json"
+    },
+    {
+      "id": "E16",
+      "category": "design_iteration",
+      "title": "Architecture distinction (intentional, not a mismatch) — paper-synthesis vs OneVision-selection-augment",
+      "status": "concluded_clarification",
+      "summary": "Two architectures live in this repo, intentionally separate (one per paper): (1) RefinedSummarization v1/v2 = synthesis (3 drafters → 1 Llama-70B refiner that merges); (2) Refine-OneVision-Summary = selection-then-augment (3 drafters → Borda voter → 1 winning draft → SingleDraftVerifier on full paragraphs → Retriever → augmenting refiner; optionally K=3 + winner-as-refiner). User confirmed: there is NO third 'B7 NLI selector' architecture; that was a misremembered design that doesn't exist in any branch.",
+      "linked_lessons": ["L2"],
+      "source": "User confirmation 2026-05-07; verified against current paper main.tex §3 and Refine-OneVision-Summary src/agents/voter.py"
+    },
+    {
+      "id": "E17",
+      "category": "design_iteration",
+      "title": "Framing evolution — from 'MAD universally fails' to 'Single-Refiner Bottleneck'",
+      "status": "concluded_framing",
+      "summary": "Original draft framed the negative result wide: 'Multi-agent debate fails on union-reconstruction tasks.' Reviewer-style scrutiny (PAPER_PLAN.md) and the L7 scoping argument narrowed it to: 'Single-Refiner Bottleneck: Why Multi-Agent Debate Fails on Long-Form Summarization' — scoped to the synthesis architecture + Llama refiner + 29 ML papers + 2 specific judges.",
+      "linked_lessons": ["L7"],
+      "source": "RefinedSummarization/paper/main.tex Title + Conclusion; docs/PAPER_PLAN.md (paper review brief)"
+    },
+    {
+      "id": "E18",
+      "category": "engineering_test",
+      "title": "Refine-OneVision-Summary unit test suite",
+      "status": "concluded_passing",
+      "config": {
+        "test_files": ["test_voter.py", "test_length_cap.py", "test_iterative_config.py", "test_preprocessing.py", "test_schemas.py"],
+        "n_tests": 25,
+        "command": "Refine-OneVision-Summary/.venv/bin/python -m pytest tests/ -q"
+      },
+      "metrics": {
+        "pass": 25,
+        "fail": 0
+      },
+      "source": "PR #4 commit ead4fbb"
+    },
+    {
+      "id": "E19",
+      "category": "planned",
+      "title": "Re-run the 5 stalled long papers under OneVision v2 with timeout protection",
+      "config": {
+        "papers": ["2205.14135 FlashAttention", "2203.15556 CoT", "2210.03629 ReAct", "2305.18290 DPO", "2310.06825 Mistral-7B"],
+        "fix_required": "Add asyncio.wait_for timeout to drafter / refiner LLMClient calls (e.g., 600 s per call); set EXPERIMENT_CONCURRENCY=1 to avoid Qwen-72B rate-limit thrashing.",
+        "expected_cost_usd": 12,
+        "expected_wall_clock_min": 90
+      },
+      "hypothesis": "v2 specifically helps long, multi-section papers (more facts to retrieve via iterative refine). Including the 5 killed papers should *strengthen* v2's win over v1 on the n=29 paired comparison.",
+      "linked_lessons": ["L9"],
+      "linked_known_issues": ["K8"]
+    },
+    {
+      "id": "E20",
+      "category": "planned",
+      "title": "NLI-based selector (replace Borda voter with NLI scorer)",
+      "config": {
+        "design_source": "Self-designed (no prior spec exists; user authorised proceeding from scratch).",
+        "blocking_question": null,
+        "approach_sketch": "For each draft, run DeBERTa-v3-base-mnli-fever-anli on every (draft-claim, paper-paragraph) pair. Sum max-entailment per draft. Pick the draft with the highest summed entailment. Implementation lives in a new src/agents/nli_selector.py module that swaps in for src/agents/voter.py."
+      },
+      "hypothesis": "An NLI classifier scoring each (draft, paper-paragraph) pair gives a more calibrated draft-quality signal than LLM Borda voting, and may pick something other than Qwen 93% of the time (i.e., real per-paper selection). Could shift the voter accuracy from 14/27 = 52% (Qwen-bias) toward higher.",
+      "expected_cost_usd": 8,
+      "expected_wall_clock_min": 60,
+      "linked_lessons": ["L9"]
+    },
+    {
+      "id": "E21",
+      "category": "planned",
+      "title": "Refiner model swap: replace Llama-70B refiner with Qwen-72B (full pipeline, n=29)",
+      "config": {
+        "change": "RefinedSummarization v1 verifier+retriever+refiner: Llama → Qwen-72B",
+        "expected_cost_usd": 25,
+        "rationale": "Tests whether the L1 'family homogeneity caps refiner ceiling' hypothesis is robust: if Qwen-refiner v1 still loses to B2 Qwen-naive, the ceiling is set by the *single-refiner architecture*, not by the Llama backbone."
+      },
+      "hypothesis": "Qwen-refined v1 will edge above Llama-refined v1 by ~+0.05–0.10 F1 (closing some of the family-homogeneity gap), but will still lose to B2 Qwen-naive — confirming that the merging architecture is the bottleneck even with the strongest backbone."
+    },
+    {
+      "id": "E22",
+      "category": "planned",
+      "title": "2x2 ablation: prompt × refiner-backbone (4 cells, n=29)",
+      "config": {
+        "axis_prompt": ["v1 intersection prompt", "v2 union prompt"],
+        "axis_refiner_model": ["Llama-3.3-70B", "Qwen-2.5-72B"],
+        "cells": 4
+      },
+      "hypothesis": "Cleanly disentangles L3 (prompt) from L1 (refiner backbone). Prediction: prompt and refiner-model effects roughly add (no big interaction). Reviewer-must-have for paper revision."
+    },
+    {
+      "id": "E23",
+      "category": "planned",
+      "title": "Multi-seed re-run (3 seeds × n=29) on locked pipelines",
+      "config": {
+        "pipelines": ["Ours_v1", "OneVision_v1", "OneVision_v2"],
+        "seeds": [42, 7, 13],
+        "expected_cost_usd": 90,
+        "expected_wall_clock_h": 4
+      },
+      "hypothesis": "Single-seed CIs are wider than multi-seed; multi-seed expected to tighten OneVision-vs-B2 to a non-touching CI in either direction (pinning down the cross-family question). Camera-ready prerequisite."
+    },
+    {
+      "id": "E24",
+      "category": "planned",
+      "title": "Recompute E15 voter audit + decompose the +0.106 OneVision-vs-B6 contrast",
+      "config": {
+        "deliverable": "A script that reports, per paper: (winning agent, OneVision F1, B2 F1, B6 F1, Δ(OneVision − B6) decomposition into [model-swap component] + [augmenter component])",
+        "approximate_decomposition_currently_known": "+0.106 = ~+0.16 (Qwen−Llama base swap, ≈ Δ(B2 − B6)) + ~−0.06 (augmenter degradation)"
+      },
+      "hypothesis": "The augmenter degradation component will be larger on papers where Qwen draft was already good, smaller on papers where Qwen draft missed facts. Identifies which papers OneVision actually helps vs which it just rides Qwen's coattails on.",
+      "linked_lessons": ["L9"]
+    },
+    {
+      "id": "E25",
+      "category": "planned",
+      "title": "Validate L4 — recompute mean issues raised / addressed in v1 n=29",
+      "config": {
+        "deliverable": "One-shot script that reads RefinerOutput.issues_addressed counts and FinalSummary.metadata.issues_raised across outputs/experiment/<id>/Ours.json for n=29, prints mean / median / distribution.",
+        "expected_cost_usd": 0,
+        "expected_wall_clock_min": 5
+      },
+      "hypothesis": "Mean issues raised ≈ 12 (= cap) on most papers, mean addressed ≈ 12. If true, validates L4. If false (mean noticeably below cap), L4's symptom claim is wrong and the lesson needs revising.",
+      "linked_lessons": ["L4"]
+    },
+    {
+      "id": "E26",
+      "category": "planned",
+      "title": "Validate L5 — recompute DPR case-study F1 + fact-coverage from paper §7 source data",
+      "config": {
+        "deliverable": "Read RefinedSummarization/paper/stats.json + main.tex §7 case-study table; report Ours_v1 F1 and B2 F1 on `2004.04906`, plus paper-claim coverage percentages for both. Verify whether the '0.18 vs 0.82' figure cited in the user spec is correct or chat hallucination.",
+        "expected_cost_usd": 0,
+        "expected_wall_clock_min": 5
+      },
+      "hypothesis": "User flagged the '0.18 vs 0.82' figure as possibly being chat hallucination. If recomputed numbers don't match, update L5 with corrected values.",
+      "linked_lessons": ["L5"]
+    },
+    {
+      "id": "E27",
+      "category": "planned",
+      "title": "Decompose L9 — compute Δ(B2 − B6) on n=29 paired",
+      "config": {
+        "deliverable": "Compute paired (B2 Qwen-72B-naive − B6 Llama-70B-v2-prompt) on the n=29 sample under both judges. This is the 'pure backbone-swap' contrast (Qwen vs Llama, same prompt). Then: Δ(OneVision − B6) − Δ(B2 − B6) = isolated augmenter effect.",
+        "expected_cost_usd": 0,
+        "expected_wall_clock_min": 5
+      },
+      "hypothesis": "Δ(B2 − B6) ≈ +0.16 strict / +0.17 deberta. If true, the OneVision +0.106 vs B6 contrast decomposes cleanly into 'voter picks Qwen base instead of Llama base' (most of it) + 'augmenter degrades by ~0.06'. Validates L9 numerically.",
+      "linked_lessons": ["L9"]
+    },
+    {
+      "id": "E28",
+      "category": "planned",
+      "title": "Re-fill E6 missing CI — recompute B5 vs B1 paired bootstrap on n=29",
+      "config": {
+        "deliverable": "Paired bootstrap CI for ΔF1(B5_llama_structured − B1_llama_naive) on n=29. Read every <id>/{B1,B5}.eval.json directly and compute paired diff vector. Cache results in stats.json under a new B5_vs_B1 key.",
+        "expected_cost_usd": 0,
+        "expected_wall_clock_min": 5
+      },
+      "hypothesis": "User confirmed this paired CI is missing from current stats.json (M4 retraction is based on the mean diff −0.04 / unpaired CI cited in paper). The paired CI should be similar but isn't cached. Validates L6 with the paired number.",
+      "linked_lessons": ["L6"]
+    }
+  ]
+}
