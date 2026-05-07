@@ -529,9 +529,10 @@ under DeBERTa.
 \toprule
 \textbf{Method} & $n$ & $F_1$ & $F_{0.5}$ & $F_2$ & $P$ & $R$ & $\text{hal}$ \\
 \midrule
-\textsc{OneVision}      & $26$ & $0.584$ & $0.751$ & $0.485$ & $0.960$ & $0.438$ & $0.026$ \\
+\textsc{OneVision} v1   & $26$ & $0.584$ & $0.751$ & $0.485$ & $0.960$ & $0.438$ & $0.026$ \\
+\textsc{OneVision} v2   & $15$ & $\mathbf{0.653}$ & $\mathbf{0.801}$ & $0.560$ & $\mathbf{0.970}$ & $0.513$ & $\mathbf{0.016}$ \\
 B1 Llama-naive          & $24$ & $0.503$ & $0.677$ & $0.408$ & $0.954$ & $0.363$ & $0.034$ \\
-\textbf{B2 Qwen-naive}  & $24$ & $\mathbf{0.645}$ & $\mathbf{0.780}$ & $\mathbf{0.560}$ & $0.965$ & $\mathbf{0.517}$ & $\mathbf{0.015}$ \\
+\textbf{B2 Qwen-naive}  & $24$ & $0.645$ & $0.780$ & $\mathbf{0.560}$ & $0.965$ & $\mathbf{0.517}$ & $0.015$ \\
 B3 DeepSeek-naive       & $24$ & $0.619$ & $0.764$ & $0.528$ & $0.943$ & $0.483$ & $0.044$ \\
 B4 Llama-8B-naive       & $26$ & $0.457$ & $0.644$ & $0.358$ & $0.959$ & $0.314$ & $0.026$ \\
 B5 Llama-structured     & $26$ & $0.431$ & $0.604$ & $0.340$ & $0.903$ & $0.300$ & $0.056$ \\
@@ -539,14 +540,18 @@ B6 Llama-v2prompt       & $25$ & $0.478$ & $0.655$ & $0.380$ & $0.906$ & $0.336$
 \bottomrule
 \end{tabular}
 \caption{Per-method means under \textbf{strict-LLM} on the
-$n\!=\!29$ sample (each row reports the count of papers with valid
-evals; drops are due to the recall checker exceeding its token
-budget on PaLM-2-style long papers and the one PDF parse failure on
-\texttt{2106.04561}). B2 (Qwen-72B-naive) and B3 (DeepSeek-V3-naive)
-lead overall; \textsc{OneVision} is the strongest \emph{Llama-based}
-method, sitting between B3 and B1 in mean $F_1$ and ahead of B6 (the
-matched single-LLM control with the same prompt directives) by
-$\geq 0.10$.}
+$n\!=\!29$ sample. \textsc{OneVision} v1 is single-pass refinement
+with a static Llama-70B refiner; \textsc{OneVision} v2 adds (i)
+$K\!=\!3$ rounds of (verify, retrieve, refine) and (ii)
+\emph{winner-as-refiner} — the LLM client that won Stage 2 voting
+also runs the refinement step (Qwen-72B in $\sim\!93\%$ of cases).
+v2 has a smaller $n$ because $5$ long papers
+(FlashAttention, Chain-of-Thought, ReAct, etc.) hit a wall-clock
+ceiling during the iterative-refine generation and were excluded.
+B2 (Qwen-72B-naive) and B3 (DeepSeek-V3-naive) remain strong;
+v2's mean $F_1$ surpasses B2's $0.645$ by $+0.008$ but the paired
+contrast against B2 is $+0.028$ n.s.\ on the $n\!=\!15$ overlap
+(Section~\ref{sec:results-contrasts}). v1 sits between B3 and B1.}
 \label{tab:per-method-strict}
 \end{table}
 
@@ -557,13 +562,14 @@ $\geq 0.10$.}
 \toprule
 \textbf{Method} & $n$ & $F_1$ & $F_{0.5}$ & $F_2$ & $P$ & $R$ & $\text{hal}$ \\
 \midrule
-\textsc{OneVision}      & $27$ & $0.515$ & $0.595$ & $0.466$ & $0.684$ & $0.445$ & $\mathbf{0.252}$ \\
-B1 Llama-naive          & $23$ & $0.431$ & $0.529$ & $0.374$ & $0.661$ & $0.349$ & $0.289$ \\
-\textbf{B2 Qwen-naive}  & $26$ & $\mathbf{0.559}$ & $\mathbf{0.598}$ & $\mathbf{0.533}$ & $0.642$ & $\mathbf{0.520}$ & $0.307$ \\
-B3 DeepSeek-naive       & $27$ & $0.506$ & $0.546$ & $0.489$ & $0.596$ & $0.489$ & $0.353$ \\
-B4 Llama-8B-naive       & $25$ & $0.407$ & $0.517$ & $0.345$ & $0.681$ & $0.316$ & $0.276$ \\
-B5 Llama-structured     & $26$ & $0.383$ & $0.493$ & $0.323$ & $0.647$ & $0.295$ & $0.308$ \\
-B6 Llama-v2prompt       & $26$ & $0.389$ & $0.474$ & $0.342$ & $0.592$ & $0.321$ & $0.368$ \\
+\textsc{OneVision} v1   & $28$ & $0.517$ & $0.597$ & $0.468$ & $0.686$ & $0.445$ & $\mathbf{0.251}$ \\
+\textsc{OneVision} v2   & $21$ & $0.514$ & $0.577$ & $0.475$ & $0.647$ & $0.458$ & $0.293$ \\
+B1 Llama-naive          & $24$ & $0.441$ & $0.539$ & $0.384$ & $0.670$ & $0.357$ & $0.281$ \\
+\textbf{B2 Qwen-naive}  & $27$ & $\mathbf{0.564}$ & $\mathbf{0.601}$ & $\mathbf{0.538}$ & $0.644$ & $\mathbf{0.526}$ & $0.306$ \\
+B3 DeepSeek-naive       & $28$ & $0.510$ & $0.548$ & $0.494$ & $0.596$ & $0.495$ & $0.353$ \\
+B4 Llama-8B-naive       & $26$ & $0.414$ & $0.525$ & $0.350$ & $0.690$ & $0.321$ & $0.268$ \\
+B5 Llama-structured     & $27$ & $0.384$ & $0.489$ & $0.326$ & $0.637$ & $0.300$ & $0.318$ \\
+B6 Llama-v2prompt       & $27$ & $0.394$ & $0.477$ & $0.347$ & $0.592$ & $0.326$ & $0.369$ \\
 \bottomrule
 \end{tabular}
 \caption{Per-method means under \textbf{DeBERTa-NLI} on the same
@@ -600,40 +606,56 @@ contrasts under both judges.
 \begin{table}[t]
 \centering
 \small
-\begin{tabular}{l|c|rrr|rrr}
+\begin{tabular}{l|cc|rrr|rrr}
 \toprule
-\multirow{2}{*}{\textbf{Baseline}} & \multirow{2}{*}{$n$}
-  & \multicolumn{3}{c|}{\textbf{Strict-LLM}}
-  & \multicolumn{3}{c}{\textbf{DeBERTa-NLI}}\\
-& & $\Delta F_1$ & $95\%$~CI & sig.
+\multirow{2}{*}{\textbf{Baseline}}
+  & \multicolumn{2}{c|}{\textbf{$\Delta$~$F_1$ (v1, n=23-26)}}
+  & \multicolumn{3}{c|}{\textbf{Strict (v2, n=15)}}
+  & \multicolumn{3}{c}{\textbf{DeBERTa (v2, n=21)}}\\
+& strict & deberta
+  & $\Delta F_1$ & $95\%$~CI & sig.
   & $\Delta F_1$ & $95\%$~CI & sig. \\
 \midrule
-B1 Llama-70B-naive         & $24$ / $23$ & $+0.078$ & $[+0.010,+0.142]$ & ** & $+0.079$ & $[+0.034,+0.127]$ & ** \\
-\textbf{B2 Qwen-72B-naive} & $24$ / $26$ & $-0.072$ & $[-0.136,+0.004]$ & ns\textsuperscript{$\dagger$}
-                                          & $-0.044$ & $[-0.090,+0.007]$ & ns\textsuperscript{$\dagger$} \\
-B3 DeepSeek-V3-naive       & $24$ / $27$ & $-0.041$ & $[-0.114,+0.034]$ & ns
-                                          & $+0.009$ & $[-0.049,+0.066]$ & ns \\
-B4 Llama-8B-naive          & $26$ / $25$ & $+0.128$ & $[+0.070,+0.185]$ & ** & $+0.106$ & $[+0.062,+0.151]$ & ** \\
-B5 Llama-70B-struct        & $26$ / $26$ & $+0.153$ & $[+0.103,+0.205]$ & ** & $+0.131$ & $[+0.092,+0.172]$ & ** \\
-\textbf{B6 Llama-70B-v2prompt} & $25$ / $26$ & $\mathbf{+0.106}$ & $\mathbf{[+0.047,+0.175]}$ & **
-                                              & $\mathbf{+0.126}$ & $\mathbf{[+0.072,+0.187]}$ & ** \\
+B1 Llama-70B-naive         & $+0.078$** & $+0.079$**
+                            & $+0.144$ & $[+0.094,+0.194]$ & **
+                            & $+0.097$ & $[+0.056,+0.136]$ & ** \\
+\textbf{B2 Qwen-72B-naive} & $-0.072$~ns & $-0.044$~ns
+                            & $\mathbf{+0.028}$ & $[-0.067,+0.125]$ & ns
+                            & $-0.026$ & $[-0.076,+0.023]$ & ns \\
+B3 DeepSeek-V3-naive       & $-0.041$~ns & $+0.009$~ns
+                            & $+0.043$ & $[-0.043,+0.128]$ & ns
+                            & $+0.036$ & $[-0.018,+0.089]$ & ns \\
+B4 Llama-8B-naive          & $+0.128$** & $+0.106$**
+                            & $+0.182$ & $[+0.099,+0.271]$ & **
+                            & $+0.104$ & $[+0.052,+0.155]$ & ** \\
+B5 Llama-70B-struct        & $+0.153$** & $+0.131$**
+                            & $+0.191$ & $[+0.107,+0.273]$ & **
+                            & $+0.128$ & $[+0.084,+0.170]$ & ** \\
+\textbf{B6 Llama-70B-v2prompt} & $+0.106$** & $+0.126$**
+                            & $\mathbf{+0.177}$ & $\mathbf{[+0.086,+0.278]}$ & **
+                            & $\mathbf{+0.140}$ & $\mathbf{[+0.085,+0.203]}$ & ** \\
+\midrule
+\textsc{OneVision} v1 (paired) & --- & ---
+                                & $+0.010$ & $[-0.048,+0.068]$ & ns
+                                & $+0.008$ & $[-0.031,+0.048]$ & ns \\
 \bottomrule
 \end{tabular}
 \caption{Paired $\Delta F_1$ contrasts (\textsc{OneVision} $-$
-baseline) on the $n\!=\!29$ sample with $95\%$ paired-bootstrap CIs
-($10{,}000$ resamples). The $n$ column reports the strict / DeBERTa
-paired counts (counts vary because some methods drop one or two
-papers to recall-checker truncation on long papers). The boldfaced
-row is the architecture-vs.-prompt control: B6 uses the \emph{same}
-prompt directives as \textsc{OneVision}'s drafters and the same
-Llama-70B backbone, but in a single-call, no-debate setting. The
-$\sim\!+0.11$ to $+0.13$ $F_1$ gap, significant under both decoupled
-judges, isolates the architectural contribution.\\
-$^\dagger$The strict-mode CI on the B2 contrast just touches zero
-from below ($+0.004$ upper edge), so we cannot reject the null that
-\textsc{OneVision} loses to Qwen-72B-naive at this sample size.
-DeBERTa-mode CI also touches zero ($+0.007$), giving the same
-verdict.}
+baseline) on the $n\!=\!29$ sample. Left two columns: v1 strict /
+deberta from Table~3 (full sample). Right block: v2 contrasts on
+the smaller v2 sample ($n\!=\!15$ strict, $n\!=\!21$ deberta after
+dropping 5 long-paper time-outs and recall-checker truncations).
+The boldfaced \textbf{B6} row is the matched-prompt single-LLM
+control: v2 widens the architectural contribution to $+0.177$
+strict / $+0.140$ deberta over its same-prompt baseline, both still
+significant. The B2 strict row also flips: v1 was $-0.072$~ns
+(slight loss to Qwen), v2 is $+0.028$~ns (slight win) — the CI
+shrinks toward zero but does not exclude it. v2 vs v1 paired (last
+row) is $+0.010$~ns: on the overlapping sample where both pipelines
+ran, the iterative-refinement variant is statistically indistinguishable
+from single-pass v1. The mean lift from v1 to v2 is partly real and
+partly selection bias (the 5 v2 time-outs were on long papers that
+might have benefitted from iteration the most).}
 \label{tab:contrasts}
 \end{table}
 

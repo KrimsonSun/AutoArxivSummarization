@@ -23,6 +23,7 @@ FIG_DIR.mkdir(parents=True, exist_ok=True)
 
 METHODS = [
     "Ours_onevision",
+    "Ours_onevision_v2",
     "B1_llama_naive",
     "B2_qwen_naive",
     "B3_deepseek_naive",
@@ -31,7 +32,8 @@ METHODS = [
     "B6_llama_v2prompt",
 ]
 METHOD_LABELS = {
-    "Ours_onevision":      "Ours\nOneVision",
+    "Ours_onevision":      "Ours\nOneVision\nv1",
+    "Ours_onevision_v2":   "Ours\nOneVision\nv2",
     "B1_llama_naive":      "B1\nLlama-naive",
     "B2_qwen_naive":       "B2\nQwen-naive",
     "B3_deepseek_naive":   "B3\nDeepSeek\nnaive",
@@ -39,7 +41,7 @@ METHOD_LABELS = {
     "B5_llama_structured": "B5\nLlama\nstructured",
     "B6_llama_v2prompt":   "B6\nLlama\nv2-prompt",
 }
-COLORS = ["#2e7d32", "#888888", "#a05a2c", "#5b3299", "#bbbbbb", "#666666", "#5b9bd5"]
+COLORS = ["#2e7d32", "#1b5e20", "#888888", "#a05a2c", "#5b3299", "#bbbbbb", "#666666", "#5b9bd5"]
 
 
 def boot_ci(values: list[float], iters: int = 10_000, seed: int = 42):

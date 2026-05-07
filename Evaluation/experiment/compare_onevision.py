@@ -26,6 +26,7 @@ EVAL_ROOT = Path(__file__).resolve().parents[1] / "outputs" / "experiment"
 
 METHODS = [
     "Ours_onevision",
+    "Ours_onevision_v2",
     "B1_llama_naive",
     "B2_qwen_naive",
     "B3_deepseek_naive",
@@ -159,9 +160,13 @@ def report_mode(label: str, eval_dir: str, papers: list[str]) -> dict:
         }
 
     # Paired contrasts: Ours_onevision − each baseline (where both are present).
+    # Also Ours_onevision_v2 − each baseline if v2 data exists.
     print("\n  Paired (Ours_onevision − baseline), n papers where BOTH have valid evals:")
     contrasts: dict[str, dict] = {}
-    for m in METHODS[1:]:  # skip Ours_onevision itself
+    contrasts_v2: dict[str, dict] = {}
+    for m in METHODS:
+        if m == "Ours_onevision":
+            continue
         diffs_f1 = []
         diffs_fh = []
         diffs_r  = []
@@ -188,18 +193,52 @@ def report_mode(label: str, eval_dir: str, papers: list[str]) -> dict:
             "delta_r": {"mean": m_r, "ci_low": lo_r, "ci_high": hi_r, "d": cohens_d(diffs_r)},
         }
 
+    # Paired contrasts: Ours_onevision_v2 − each baseline + vs Ours_onevision.
+    print("\n  Paired (Ours_onevision_v2 − baseline), n papers where BOTH have valid evals:")
+    for m in METHODS:
+        if m == "Ours_onevision_v2":
+            continue
+        diffs_f1 = []
+        diffs_fh = []
+        diffs_r  = []
+        for r in rows:
+            ov2 = r["cells"]["Ours_onevision_v2"]
+            bl = r["cells"][m]
+            if ov2 is None or bl is None:
+                continue
+            diffs_f1.append(ov2["f1"] - bl["f1"])
+            diffs_fh.append(ov2.get("f_half", 0.0) - bl.get("f_half", 0.0))
+            diffs_r.append(ov2["paper_recall"] - bl["paper_recall"])
+        if not diffs_f1:
+            continue
+        m_f1, lo_f1, hi_f1 = boot_ci(diffs_f1)
+        m_fh, lo_fh, hi_fh = boot_ci(diffs_fh)
+        m_r,  lo_r,  hi_r  = boot_ci(diffs_r)
+        sig = "**" if (lo_f1 > 0 or hi_f1 < 0) else "ns"
+        print(f"  {m:<25}  ΔF1={m_f1:+.3f} CI[{lo_f1:+.3f}, {hi_f1:+.3f}] {sig}  "
+              f"ΔF0.5={m_fh:+.3f}  ΔR={m_r:+.3f}")
+        contrasts_v2[m] = {
+            "n_paired": len(diffs_f1),
+            "delta_f1": {"mean": m_f1, "ci_low": lo_f1, "ci_high": hi_f1, "d": cohens_d(diffs_f1)},
+            "delta_f_half": {"mean": m_fh, "ci_low": lo_fh, "ci_high": hi_fh, "d": cohens_d(diffs_fh)},
+            "delta_r": {"mean": m_r, "ci_low": lo_r, "ci_high": hi_r, "d": cohens_d(diffs_r)},
+        }
+
     return {
         "mode": label,
         "n_papers": len(rows),
         "papers_used": [r["paper"] for r in rows],
         "method_stats": method_stats,
         "contrasts_vs_ours_onevision": contrasts,
+        "contrasts_vs_ours_onevision_v2": contrasts_v2,
     }
 
 
 def main() -> None:
     from experiment.paper_pool import sample
-    papers = sample(15, seed=42)
+    import sys as _sys
+    n = int(_sys.argv[1]) if len(_sys.argv) > 1 else 29
+    papers = sample(n, seed=42)
     print(f"comparing OneVision on {len(papers)} papers: {papers}")
     out_strict  = report_mode("STRICT-LLM",   "evals_strict",  papers)
     out_deberta = report_mode("DeBERTa-NLI",  "evals_deberta", papers)
