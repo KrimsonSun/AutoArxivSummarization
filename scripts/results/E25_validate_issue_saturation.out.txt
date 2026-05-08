@@ -1,0 +1,23 @@
+E25 — Verifier saturation audit, n=29 papers (v1 RefinedSummarization)
+  source: RefinedSummarization/paper/stats.json
+
+Issues raised:
+  mean   = 12.00
+  median = 12.0
+  min    = 12, max = 12
+  saturated at cap (==12): 29/29
+
+Issues addressed:
+  mean   = 12.00
+  median = 12.0
+  min    = 12, max = 12
+  addressed-equals-raised: 29/29
+
+Evidence paragraphs used per paper:
+  mean   = 17.79
+  median = 17.0
+  min    = 13, max = 25
+
+L4 verdict:
+  L4 symptom claim 'mean issues raised = 12 cap': CONFIRMED (mean=12.00, 100% saturated)
+  L4 symptom claim 'mean addressed = 12, refiner rubber-stamps': CONFIRMED (100% raised==addressed)
