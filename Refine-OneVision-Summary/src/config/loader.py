@@ -15,7 +15,18 @@ class AgentSpec(BaseModel):
 
 
 class VotingSpec(BaseModel):
-    rounds: int = 3
+    method: str = Field(
+        default="claim_grounding",
+        description=(
+            "Stage 2 voting method. 'claim_grounding' (v2 default) runs the "
+            "verifier on each of the 3 drafts and picks the lowest issue "
+            "density per 100 words — length-normalised, anonymous, and "
+            "free of LLM-as-judge bias. 'borda' is the legacy 3-LLM × K-round "
+            "rubric voter, retained for ablation. See "
+            "docs/BUG_REPORT_voter_bias.md."
+        ),
+    )
+    rounds: int = 3  # only used when method == 'borda'
     seed: int = 42
 
 

@@ -49,42 +49,48 @@ initial_summarizer:
     Output the InitialSummary JSON now. Stay within ~800–1000 words across all
     fields combined.
 
-# ------------------------------------------------------- Stage 2
+# ------------------------------------------------------- Stage 2 (Borda / legacy)
+# Used when pipeline.voting.method = "borda". The newer "claim_grounding"
+# method (default) replaces this LLM-judging voter with verifier-derived
+# issue-density scoring. See docs/BUG_REPORT_voter_bias.md for context.
 voter:
   system: |
-    You are a senior reviewer in a {{ total_rounds }}-round multi-agent
-    selection process. Three different LLMs each produced a summary of the
-    same paper (presented to you as anonymous drafts D1, D2, D3 — you do
-    NOT know which LLM wrote which). You and two other reviewers will
-    independently rank all three drafts; after all rounds, the highest-
-    Borda-count draft is selected as the winner of the selection stage.
+    You are a senior reviewer in a {{ total_rounds }}-round selection
+    process. Three drafts of the same paper, written by three different
+    LLMs, are presented to you under anonymous labels D1, D2, D3.
+    Authorship is genuinely hidden — the JSON dumps below have been
+    stripped of any agent_id field. Two other reviewers (also anonymous
+    to you) will independently rank the same three drafts; after
+    {{ total_rounds }} rounds, the highest-Borda-count draft wins.
 
     Your task this round (Round {{ round_index }} of {{ total_rounds }}):
 
-    Score every draft on FOUR axes (each integer 0..10):
-      • faithfulness     — does the draft accurately reflect the paper's
-                           content? (no fabricated facts, no contradictions)
-      • coverage         — does the draft mention the paper's important
-                           atomic facts (numbers, dataset names, method
-                           components, key findings)?
-      • specificity      — does the draft preserve specific quantitative
-                           detail rather than collapsing into abstractions?
-                           "achieves 28.4 BLEU" beats "achieves SOTA".
-      • fluency          — is the draft well-written, structured, and
-                           readable?
+    Score every draft on FOUR axes (each integer 0..10), normalised by the
+    draft's length to mitigate the "longer draft is automatically better"
+    confound:
+      • faithfulness                — accuracy vs the paper's content
+                                       (no fabricated facts, no contradictions).
+      • specific_facts_per_100_words — count of specific numbers / dataset
+                                       names / method components in the draft,
+                                       divided by (words / 100). Use the same
+                                       normalisation across all three drafts —
+                                       a 700-word draft with 14 specifics
+                                       scores the same as a 350-word draft
+                                       with 7 specifics.
+      • coverage_breadth_0_10       — does the draft cover the full
+                                       contribution / method / experiments /
+                                       limitations span, or is it narrow?
+                                       Independent of length.
+      • fluency                     — well-structured, readable.
 
     THEN assign each draft a rank ∈ {1, 2, 3} (1 = best, 3 = worst,
-    no ties allowed). The rank should reflect the OVERALL quality —
-    which draft would you actually use to represent this paper?
+    no ties allowed). Length alone MUST NOT decide the ranking.
 
     {%- if round_index > 1 %}
 
-    THIS IS NOT THE FIRST ROUND. You will see the rankings the other
-    voters produced in earlier rounds. You may revise your assessment if
-    their rationale changes your view, OR maintain your original
-    assessment if you find their reasoning unconvincing. Be specific
-    in your rationale about WHY you agree or disagree with prior
-    rankings.
+    THIS IS NOT THE FIRST ROUND. You will see prior rankings from the
+    other anonymous reviewers. You may revise your assessment OR maintain
+    it; explain WHY in your rationale.
     {%- endif %}
 
     Output the VoteList JSON. Each entry MUST cover one of D1, D2, D3
@@ -92,12 +98,12 @@ voter:
 
   user: |
     {%- if prior_rounds %}
-    Prior round rankings (oldest first):
+    Prior round rankings (oldest first; reviewers are anonymous):
 
     {% for round in prior_rounds %}
     --- Round {{ loop.index }} of {{ prior_rounds | length }} prior rounds ---
     {% for ranking in round %}
-    Voter "{{ ranking.voter_id }}":{% if ranking.is_abstention %} (abstained){% endif %}
+    Anonymous reviewer R{{ loop.index }}:{% if ranking.is_abstention %} (abstained){% endif %}
     {% for s in ranking.scores %}
       {{ s.draft_label }}: rank={{ s.rank }}, faith={{ s.faithfulness_0_10 }}, cov={{ s.coverage_0_10 }}, spec={{ s.specificity_0_10 }}, flu={{ s.fluency_0_10 }}
         rationale: {{ s.rationale }}
@@ -106,15 +112,16 @@ voter:
     {% endfor %}
     {%- endif %}
 
-    The three drafts to rank (anonymous labels D1 / D2 / D3):
+    The three drafts to rank (anonymous labels D1 / D2 / D3, agent_id
+    stripped):
 
     {% for label, d in labelled_drafts %}
-    ============================ {{ label }} ============================
-    {{ d.model_dump_json(indent=2) }}
+    ============================ {{ label }} ({{ d.word_count() }} words) ============================
+    {{ d.anon_json(2) }}
 
     {% endfor %}
 
-    You are voter "{{ voter_id }}", round {{ round_index }}.
+    Round {{ round_index }}.
     Output the VoteList JSON now. Cover D1, D2, D3 in that order.
 
 # ------------------------------------------------------- Stage 3
@@ -146,25 +153,42 @@ verifier_onevision:
     don't apply.
 
     Rules:
-    1. Output AT MOST 12 issues, sorted by severity. Prioritise
+    1. **Do NOT pad to a fixed count.** Output ONLY the issues you actually
+       observe. If the draft is excellent and you find no factual errors
+       and no important missing facts, output 0 issues. The cap of 12 is
+       a maximum, not a target.
+    2. Sort issues by severity (most severe first). Prioritise
        missing_info issues that flag SPECIFIC missing facts (numbers,
        dataset names, method components) — these directly drive recall
        gains in the refiner stage.
-    2. Each issue must specify a paragraph ID where the supporting
+    3. Each issue must specify a paragraph ID where the supporting
        evidence lives (in `suggested_paragraphs`).
-    3. Do NOT raise stylistic issues; only content issues.
-    4. Issue IDs MUST be sequential I1, I2, ...
-    5. `affected_summaries` should be `[ "winning_draft" ]` for every
+    4. Do NOT raise stylistic issues; only content issues.
+    5. Issue IDs MUST be sequential I1, I2, ...
+    6. `affected_summaries` should be `[ "winning_draft" ]` for every
        issue (we only have one draft).
-    6. Do NOT populate `raised_by`.
+    7. Do NOT populate `raised_by`.
 
-    Return JSON shaped {"issues": [Issue, ...]}.
+    Severity calibration (use this to decide whether to include an issue
+    at all):
+    - HIGH severity   — a specific number, name, dataset, or contribution
+                        is missing or contradicted. Worth surfacing.
+    - MEDIUM severity — a method component or experimental detail is
+                        vague but not factually wrong. Worth surfacing if
+                        the count is low.
+    - LOW severity    — minor paraphrase imprecision, a fact that is
+                        clearly implied. **Do NOT include unless your
+                        total count is below ~3.**
+
+    Return JSON shaped {"issues": [Issue, ...]}. Cap of 12 applies AFTER
+    severity filtering, not before.
 
   user: |
-    The winning draft (you are evaluating this single draft against the paper):
+    The candidate draft (evaluate this single draft against the paper.
+    Authorship is hidden; do not speculate about which model wrote it):
 
-    === Draft from {{ draft.agent_id }} ===
-    {{ draft.model_dump_json(indent=2) }}
+    === Draft ({{ draft.word_count() }} words) ===
+    {{ draft.anon_json(2) }}
 
     Full paper paragraphs (FULL TEXT, not summaries — read these carefully
     when checking for missing facts and factual errors):
@@ -259,8 +283,8 @@ refiner_onevision:
     The WINNING DRAFT (your primary input — preserve its structure and
     wording where issues do not demand change):
 
-    === Winning draft from {{ draft.agent_id }} ===
-    {{ draft.model_dump_json(indent=2) }}
+    === Winning draft ({{ draft.word_count() }} words) ===
+    {{ draft.anon_json(2) }}
 
     Issues to resolve:
     {% for i in issues %}

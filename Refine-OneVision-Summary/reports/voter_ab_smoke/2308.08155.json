@@ -1,0 +1,83 @@
+{
+  "arxiv_id": "2308.08155",
+  "results": {
+    "claim_grounding": {
+      "method": "claim_grounding",
+      "winner_agent_id": "agent_qwen",
+      "winner_label": "D1",
+      "per_label_borda": {
+        "D1": 3.0,
+        "D3": 2.0,
+        "D2": 1.0
+      },
+      "label_to_agent": {
+        "D2": "agent_llama",
+        "D1": "agent_qwen",
+        "D3": "agent_deepseek"
+      },
+      "claim_grounding_scores": [
+        {
+          "draft_label": "D1",
+          "agent_id": "agent_qwen",
+          "word_count": 662,
+          "n_factual_error": 0,
+          "n_missing_info": 4,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 4,
+          "issues_per_100_words": 0.6042296072507553
+        },
+        {
+          "draft_label": "D2",
+          "agent_id": "agent_llama",
+          "word_count": 411,
+          "n_factual_error": 0,
+          "n_missing_info": 5,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 5,
+          "issues_per_100_words": 1.21654501216545
+        },
+        {
+          "draft_label": "D3",
+          "agent_id": "agent_deepseek",
+          "word_count": 354,
+          "n_factual_error": 0,
+          "n_missing_info": 3,
+          "n_unsupported_claim": 1,
+          "n_ambiguity": 0,
+          "n_total_issues": 4,
+          "issues_per_100_words": 0.847457627118644
+        }
+      ],
+      "tokens_prompt": 84426,
+      "tokens_completion": 6744,
+      "total_calls": 11,
+      "n_issues_raised": 4,
+      "n_issues_addressed": 4,
+      "wall_seconds": 181.5
+    },
+    "borda": {
+      "method": "borda",
+      "winner_agent_id": "agent_qwen",
+      "winner_label": "D1",
+      "per_label_borda": {
+        "D1": 18.0,
+        "D2": 9.0,
+        "D3": 15.0
+      },
+      "label_to_agent": {
+        "D2": "agent_llama",
+        "D1": "agent_qwen",
+        "D3": "agent_deepseek"
+      },
+      "claim_grounding_scores": [],
+      "tokens_prompt": 104664,
+      "tokens_completion": 8632,
+      "total_calls": 18,
+      "n_issues_raised": 4,
+      "n_issues_addressed": 4,
+      "wall_seconds": 256.7
+    }
+  }
+}

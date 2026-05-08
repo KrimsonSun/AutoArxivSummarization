@@ -1,10 +1,22 @@
-"""Game-theory voter — Stage 2 of the Refine-OneVision pipeline.
+"""Game-theory voter — Stage 2 (Borda / legacy mode).
 
 Three LLMs (the same ones that drafted) run K rounds of cross-evaluation
 over the 3 drafts. Drafts are presented under anonymous labels (D1/D2/D3)
-and the label-to-agent mapping is hidden from the voters to mitigate
-self-favouring. After K rounds, we aggregate via Borda count and return
-the winning draft.
+AND the JSON is serialised with `agent_id` excluded so authorship cannot
+leak via the dump's first key (this leak was Bug 1 of the n=29 voter
+audit — see docs/BUG_REPORT_voter_bias.md). The voter prompt also no
+longer carries `voter_id`, so each voter doesn't know its own identity
+(Bug 2 — self-preference). The rubric was rewritten to score
+"specific facts per 100 words" rather than raw coverage so that draft
+length stops biasing the vote toward the longest-by-default model
+(Bug 3).
+
+This module is retained as the legacy "borda" voting method. The
+default voting method in v2 is `claim_grounding` (see
+`claim_grounding_voter.py`), which replaces subjective LLM ranking with
+verifier-derived issue-density scoring per the SpecEM principle —
+substitute objective per-token / per-claim signals for subjective
+judging.
 
 Why this is in the pipeline at all:
   Multi-agent debate is empirically strong on consensus-reasoning tasks
@@ -152,13 +164,15 @@ class GameTheoryVoter:
             + "\n\n"
             + schema_example_block(VoteList)
         )
+        # Voter must NOT know its own identity (was Bug 2 — self-preference).
+        # voter.agent_id is retained server-side only for transcript bookkeeping;
+        # it is never rendered into the prompt.
         user = render(
             "voter",
             "user",
             round_index=round_index,
             labelled_drafts=labelled_drafts,
             prior_rounds=prior_rounds,
-            voter_id=voter.agent_id,
         )
         try:
             result: VoteList = await voter.client.generate(

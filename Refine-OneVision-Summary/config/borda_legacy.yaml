@@ -35,7 +35,7 @@ pipeline:
   # See docs/BUG_REPORT_voter_bias.md for why we replaced the legacy
   # Borda voter; set method: borda for backward-compatible ablation.
   voting:
-    method: claim_grounding
+    method: borda
     rounds: 3      # only used when method == 'borda'
     seed: 42
 
