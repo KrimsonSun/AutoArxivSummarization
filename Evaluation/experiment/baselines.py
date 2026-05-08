@@ -48,13 +48,15 @@ BASELINES: list[BaselineSpec] = [
 _NAIVE_SYSTEM = (
     "You are a senior researcher. Summarize the academic paper provided in "
     "concise, faithful Markdown. Stick to facts in the paper — do not "
-    "speculate or add information that isn't there. Use about 300–500 words."
+    "speculate or add information that isn't there. Target length: "
+    "approximately 800-1000 words (hard cap: 1000 words)."
 )
 
 _STRUCTURED_SYSTEM = (
     "You are a senior researcher writing a structured summary of an academic "
     "paper. Use the exact 5 sections below in Markdown. Be specific and "
-    "quantitative. Do NOT introduce facts not in the paper.\n\n"
+    "quantitative. Do NOT introduce facts not in the paper. "
+    "Target length: approximately 800-1000 words total (hard cap: 1000).\n\n"
     "## TL;DR\n(one paragraph, ≤ 5 sentences)\n\n"
     "## Key Contributions\n(bulleted list of 3–5 atomic contributions)\n\n"
     "## Method\n(how the system works — 2–3 paragraphs)\n\n"
@@ -91,7 +93,8 @@ _V2_INSPIRED_SYSTEM = (
     "2. Aim for higher fact density: each non-trivial sentence should add "
     "a specific verifiable fact.\n"
     "3. Do NOT introduce claims that aren't in the paper.\n"
-    "4. Use Markdown formatting. Use 5 sections:\n\n"
+    "4. Target length: approximately 800-1000 words total (hard cap: 1000).\n"
+    "5. Use Markdown formatting. Use 5 sections:\n\n"
     "## TL;DR\n(one paragraph, ≤ 5 sentences, with specific numbers/names)\n\n"
     "## Key Contributions\n(bulleted list of 3–5 atomic contributions)\n\n"
     "## Method\n(how the system works — 2–3 paragraphs)\n\n"
@@ -125,10 +128,13 @@ async def run_baseline(
     client = LLMClient(
         model=spec.model,
         temperature=0.3,
-        max_tokens=2048,
+        max_tokens=2200,
     )
     system = system_prompt_for(spec)
-    user = f"Paper title: {title}\n\nPaper content:\n\n{paper_text}\n\nWrite the summary now."
+    user = (
+        f"Paper title: {title}\n\nPaper content:\n\n{paper_text}\n\n"
+        f"Write the summary now. Target length: 800-1000 words, hard cap 1000."
+    )
 
     # We bypass the structured-output JSON path because baselines emit plain
     # text. Use the underlying SDK directly to get raw text.
@@ -158,6 +164,15 @@ async def run_baseline(
                 getattr(usage, "prompt_tokens", 0) or 0,
                 getattr(usage, "completion_tokens", 0) or 0,
             )
+        # Hard 1000-word cap (post-hoc safety for any model that overshoots).
+        words = text.split()
+        if len(words) > 1000:
+            head = " ".join(words[:1000])
+            # Try to back off to a sentence boundary near the cap.
+            boundary = max(head.rfind("."), head.rfind("\n"))
+            if boundary > 0 and boundary > len(head) - 200:
+                head = head[: boundary + 1]
+            text = head + "\n\n[…truncated to 1000-word cap…]"
         return text
     finally:
         # Don't leave an open httpx pool around.

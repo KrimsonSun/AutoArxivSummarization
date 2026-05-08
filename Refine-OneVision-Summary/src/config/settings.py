@@ -13,16 +13,37 @@ from pathlib import Path
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Locate the project root .env file regardless of where Python is invoked from.
+# Search order (later files OVERRIDE earlier ones in pydantic-settings):
+#   1. Repo-root .env (shared across all sibling subprojects)
+#   2. Project-local .env (project-specific overrides)
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
-_ENV_FILE = _PROJECT_ROOT / ".env"
+_PROJECT_ENV = _PROJECT_ROOT / ".env"
+
+
+def _find_repo_root_env() -> Path | None:
+    """Walk up to the nearest .git ancestor and return its sibling .env if any."""
+    cur = _PROJECT_ROOT
+    for _ in range(8):
+        if (cur / ".git").exists():
+            cand = cur / ".env"
+            return cand if cand.exists() else None
+        if cur.parent == cur:
+            return None
+        cur = cur.parent
+    return None
+
+
+_REPO_ENV = _find_repo_root_env()
+_ENV_FILES: tuple[str, ...] = tuple(
+    str(p) for p in (_REPO_ENV, _PROJECT_ENV) if p is not None and p.exists()
+)
 
 
 class Settings(BaseSettings):
     """All credentials and base URLs live here. No other module reads os.environ."""
 
     model_config = SettingsConfigDict(
-        env_file=str(_ENV_FILE),
+        env_file=_ENV_FILES or None,
         env_file_encoding="utf-8",
         case_sensitive=True,
         extra="ignore",

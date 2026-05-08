@@ -1,0 +1,60 @@
+# =============================================================================
+# OneVision iterative variant: 3-round refinement with the winning agent
+# acting as refiner. Use this config to test whether dynamic-refiner +
+# K-round refinement beats the v1 (single-pass, Llama-static-refiner)
+# OneVision setup.
+# =============================================================================
+
+pipeline:
+  # Same 3 drafters as default.yaml.
+  initial_agents:
+    - id: agent_llama
+      provider: openai
+      model: meta-llama/llama-3.3-70b-instruct
+      temperature: 0.7
+    - id: agent_qwen
+      provider: openai
+      model: qwen/qwen-2.5-72b-instruct
+      temperature: 0.7
+    - id: agent_deepseek
+      provider: openai
+      model: deepseek/deepseek-chat
+      temperature: 0.7
+
+  # Verifier + retriever still use Llama-70B (cheaper + the verifier
+  # prompt was tuned on Llama). The refiner is replaced per-paper by the
+  # winning agent's client when use_winner_as_refiner=true.
+  pipeline_llm:
+    provider: openai
+    model: meta-llama/llama-3.3-70b-instruct
+    temperature: 0.3
+
+  voting:
+    rounds: 3
+    seed: 42
+
+  refinement:
+    # 3 rounds of (verify → retrieve → refine), each round's output
+    # feeds the next round's verifier.
+    rounds: 3
+    # Refiner uses the winning agent's LLMClient instead of the static
+    # pipeline_llm, so a Qwen winner is refined by Qwen, etc.
+    use_winner_as_refiner: true
+
+  max_summary_words: 1000
+
+constraints:
+  max_issues: 12
+  max_evidence_per_issue: 3
+  max_paragraphs_in_refiner_context: 50
+  llm_timeout_seconds: 120
+  max_retries: 2
+
+output:
+  json_output_dir: outputs/json
+  markdown_output_dir: outputs/markdown
+  emit_markdown: true
+
+logging:
+  level: INFO
+  json_logs: true
