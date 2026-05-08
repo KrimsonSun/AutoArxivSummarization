@@ -290,24 +290,76 @@ support strength) or a fully different scoring path — see §6
 under both `claim_grounding` and `borda` (post-fix) configs and writes
 a side-by-side report (winner per paper, per-draft scoring, token cost).
 
-```
-cd Refine-OneVision-Summary
-OPENAI_API_KEY=sk-or-v1-...  OPENAI_BASE_URL=https://openrouter.ai/api/v1  \
-    python scripts/voter_ab_smoke.py --n 3
-```
+`scripts/run_onevision_n29.py` runs the full n=29 paper pool under the
+default `claim_grounding` voter, writing OneVision summaries to
+`Evaluation/outputs/experiment/summaries/<id>/Ours_onevision_v3.json`
+(eval-ready) and an aggregate report under
+`reports/n29_run/summary.md`.
 
-Predictions worth checking:
+## 5.1 Live n=29 results (Fix 1+2+3, 2026-05-07)
 
-  - **Qwen-rate under `claim_grounding` should drop substantially below
-    93 %** (target: ≤60 % on n=3, ≤70 % on n=29). If still ≥80 %, then
-    Bug 4 dominates and either the pool changes or the paper framing
-    changes (see §4).
-  - **Cost under `claim_grounding` should be roughly equivalent or lower
-    than legacy `borda`** because the per-draft verifier calls (3) plus
-    saved Stage-3 call ≈ legacy voter calls (9) — but this depends on
-    drafter-output verbosity. Token logs are dumped per paper.
-  - **Borda (post-fix) Qwen-rate** should also drop relative to the
-    pre-fix 93 %, because Bugs 1–3 are repaired in that path too.
+Ran on 30 papers; 1 PDF parse failure (`2106.04561` — same as the
+original PER_PAPER_AUDIT, persistent issue). 29 valid completions.
+First-pass run hit 3 trivial-fallback cases (at least one drafter
+returned 429 rate-limit during the burst); those 3 papers were
+re-run with concurrency=2 and all three completed with the real
+claim_grounding voter. Numbers below are after the retry.
+
+| Voter | Qwen | Llama | DeepSeek |
+|---|---:|---:|---:|
+| Borda (legacy, pre-fix, n=28) | **26 (92.9 %)** | 2 (7.1 %) | 0 (0 %) |
+| **claim_grounding (Fix 1+2+3, n=29)** | **6 (20.7 %)** | **14 (48.3 %)** | **9 (31.0 %)** |
+
+**Qwen-rate dropped from 93 % to 21 %.** The voter genuinely varies by
+paper; Llama is now the most-frequent winner (48 %), DeepSeek second
+(31 %), Qwen third (21 %). This is a comprehensive resolution of the
+voter-bias symptom from PER_PAPER_AUDIT.md.
+
+Caveats:
+
+  - **No remaining fallback cases** after the retry on RAG / PaLM /
+    BitNet. All 29 valid papers ran the actual claim_grounding voter
+    and produced real per-draft scoring.
+  - **No degenerate ties on the live n=29.** The DPR 3-way tie that
+    showed up in the offline n=5 replay (where stochastic re-runs
+    happened to give all three drafters the same missing_info count)
+    was a one-off. On the live run, DPR cleanly went to Llama (5 / 3 /
+    4 missing).
+  - **Drafter pool imbalance (Bug 4) is now visible**: with Llama winning
+    48 % of papers vs B1 Llama-naive's mean F1 of 0.418 (significantly
+    below B2 Qwen-naive's 0.569 in stats.json), the new winner
+    distribution may not predict per-paper *quality* — only that the
+    new voter is no longer length-biased toward Qwen. Whether the new
+    winners produce higher F1 than the old Qwen-only choices is the
+    central question for the follow-up eval.
+  - Cost: 2.6 M prompt + 0.17 M completion tokens across 29 papers over
+    31+5 minutes wall (concurrency=3 for first pass + concurrency=2
+    retry). ≈ \$3 at OpenRouter rates.
+  - **F1 evaluation has not yet been run** on these summaries. The new
+    voter producing different winners doesn't automatically mean F1
+    improves. The `Ours_onevision_v3.json` files are ready for
+    `Evaluation/experiment/strict_reeval` (strict + DeBERTa judges).
+    Awaiting follow-up run.
+
+Predictions for follow-up F1 eval:
+
+  - **Best case**: F1 vs paper-claims goes UP because the voter now
+    selects Llama / DeepSeek drafts on papers where they cover the
+    paper's specifics better than Qwen (e.g., AutoGen, RLAIF, ReAct
+    in the new run all picked DeepSeek over the previous Qwen pick).
+  - **Worst case**: F1 vs paper-claims goes DOWN because Qwen drafts
+    were already the strongest on average (B2 Qwen-naive F1 = 0.569 vs
+    B1 Llama-naive F1 = 0.418 in stats.json), and the voter is now
+    picking weaker drafts based on a verifier signal that may not
+    correlate well with paper-claim coverage.
+  - **Neutral case**: F1 ≈ unchanged in mean but more variance per
+    paper. The voter genuinely matches drafter to paper, but downstream
+    refinement homogenises the gains.
+
+The companion paper's framing decision rests on this F1 eval: if it
+goes up, OneVision really IS doing per-paper drafter selection; if it
+goes down, the previous "Qwen-pick" pipeline was inadvertently right
+on average even if it wasn't doing what it claimed.
 
 ## 6. Files touched
 
