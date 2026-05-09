@@ -20,22 +20,43 @@ initial_summarizer:
     your summary that is non-trivial MUST cite the paragraph IDs it draws from
     (in the `evidence_refs` field).
 
-    LENGTH CAP: produce a summary of approximately 800–1000 words ACROSS ALL
-    fields combined (tldr + core_idea + key_contributions + method.overview +
-    method.components + experiments.setup + experiments.key_findings +
-    limitations). Anything longer will be truncated post-hoc and degrade the
-    summary's coherence.
+    LENGTH TARGET: produce a comprehensive summary of approximately
+    900–1100 words ACROSS ALL fields combined. Going UNDER 800 words
+    causes specific facts (numbers, dataset names, method components) to
+    be lost — this hurts the summary far more than going slightly over.
+    The 1000-word soft cap allows occasional overruns; aim for thorough
+    coverage rather than terseness.
+
+    Per-field budget (rough; adapt to paper content but cover everything):
+      • tldr                       : 80–120 words   (one comprehensive paragraph)
+      • core_idea                  : 100–150 words  (main contribution + how it works)
+      • key_contributions          : 5–7 items × 30–50 words each
+                                     (each item: a specific fact + numbers when present)
+      • method.overview            : 100–150 words  (architecture / pipeline narrative)
+      • method.components          : 4–6 components × 40–60 words each
+                                     (named sub-system + what it does + how)
+      • experiments.setup          : 80–120 words  (datasets, baselines, metrics, key configs)
+      • experiments.key_findings   : 4–6 items × 30–50 words each
+                                     (each item: specific quantitative result with numbers)
+      • limitations                : 3–4 items × 25–40 words each
+                                     (limitations the authors themselves stated)
 
     Rules:
     1. Do NOT hallucinate. If you can't find evidence in the paper for a claim,
        omit the claim or mark its evidence_refs as empty.
     2. Use Markdown formatting in string fields (lists, **bold**, `code`).
-    3. Be specific: "achieves 8 percentage points improvement on traffic offense
-       dataset" beats "achieves significant improvement". Specific numbers and
-       names should always be preserved over abstract paraphrases.
+    3. **Be specific** — preserve every quantitative fact you encounter.
+       "Achieves 28.4 BLEU on WMT 2014 EN-DE" is far better than "achieves
+       state-of-the-art". Specific numbers, dataset names, method-component
+       names are the highest-value content.
     4. For `method.components`, decompose into named sub-systems (e.g., "Drafting
-       Component", "Verification Component"), not just narrative steps.
+       Component", "Verification Component"), not just narrative steps. Use the
+       paper's own component names where the paper provides them.
     5. Set `agent_id` to exactly: {{ agent_id }}
+
+    Coverage priority order when budgets bind:
+       quantitative results > named methods/datasets > stated limitations
+       > qualitative motivation > generic background.
 
   user: |
     Paper Title: {{ paper.title }}
@@ -46,8 +67,9 @@ initial_summarizer:
     [{{ p.id }} | {{ p.section }}] {{ p.text }}
     {% endfor %}
 
-    Output the InitialSummary JSON now. Stay within ~800–1000 words across all
-    fields combined.
+    Output the InitialSummary JSON now. Target ~900–1100 words total
+    across all fields. **Cover thoroughly — under-coverage hurts more
+    than slight over-length.**
 
 # ------------------------------------------------------- Stage 2 (Borda / legacy)
 # Used when pipeline.voting.method = "borda". The newer "claim_grounding"
@@ -153,10 +175,11 @@ verifier_onevision:
     don't apply.
 
     Rules:
-    1. **Do NOT pad to a fixed count.** Output ONLY the issues you actually
-       observe. If the draft is excellent and you find no factual errors
-       and no important missing facts, output 0 issues. The cap of 12 is
-       a maximum, not a target.
+    1. Output ONLY the issues you actually observe. If the draft is truly
+       excellent and you find no factual errors and no important missing
+       facts, output 0 issues. The cap of 12 is a maximum, not a target.
+       Padding-to-a-fixed-count is wrong; under-flagging when the draft
+       is short is also wrong (see Length-aware coverage below).
     2. Sort issues by severity (most severe first). Prioritise
        missing_info issues that flag SPECIFIC missing facts (numbers,
        dataset names, method components) — these directly drive recall
@@ -169,16 +192,29 @@ verifier_onevision:
        issue (we only have one draft).
     7. Do NOT populate `raised_by`.
 
-    Severity calibration (use this to decide whether to include an issue
-    at all):
+    Severity calibration:
     - HIGH severity   — a specific number, name, dataset, or contribution
-                        is missing or contradicted. Worth surfacing.
+                        is missing or contradicted. Always surface.
     - MEDIUM severity — a method component or experimental detail is
-                        vague but not factually wrong. Worth surfacing if
-                        the count is low.
+                        vague but not factually wrong. Surface unless
+                        already at 8+ HIGH-severity issues.
     - LOW severity    — minor paraphrase imprecision, a fact that is
-                        clearly implied. **Do NOT include unless your
-                        total count is below ~3.**
+                        clearly implied. Only include if total HIGH+MEDIUM
+                        count is below ~3.
+
+    **Length-aware coverage** (important — the draft length is shown
+    in the user prompt header):
+    - If the draft is **under 800 words**, it is materially incomplete
+      relative to the paper. Be EXPANSIVE on missing_info: surface up
+      to 8–10 specific atomic facts from the paper that the draft
+      should have covered (numbers, named method components, dataset
+      names, stated limitations). The draft has room for them; flag
+      them so the refiner can insert them.
+    - If the draft is **800–1000 words**, surface 4–6 missing_info
+      issues focused on the most important specifics still absent.
+    - If the draft is **1000+ words**, only flag truly important
+      missing facts (HIGH severity); the draft is already content-
+      saturated, low-severity additions risk overflow.
 
     Return JSON shaped {"issues": [Issue, ...]}. Cap of 12 applies AFTER
     severity filtering, not before.
@@ -259,22 +295,41 @@ refiner_onevision:
     -  For each `ambiguity`: rephrase using the specific terms from the
        paper.
 
-    DO NOT rewrite the entire summary in your own voice. Preserve the
-    winning draft's wording wherever issues do not require change.
+    Preserve the winning draft's wording wherever issues do not require
+    change — but DO NOT treat preservation as a reason to skip
+    expansion. If the draft is short, your job is to extend it with
+    specific facts grounded in the cited evidence paragraphs.
 
-    LENGTH CAP: keep the final summary at approximately 800–1000 words
-    ACROSS ALL fields combined ({{ max_words }} words is the hard upper
-    bound — anything beyond will be truncated post-hoc).
+    LENGTH TARGET: produce a comprehensive final summary of approximately
+    900–1100 words ACROSS ALL fields combined. The {{ max_words }}-word
+    soft cap allows occasional overruns; under-coverage hurts the
+    summary far more than slight over-length.
+
+    **Expansion mandate** (this is the most-overlooked instruction —
+    read it carefully):
+    -  If the winning draft is below 800 words total, you MUST expand
+       it. Use the verifier's issue list as a starting point, then ALSO
+       add other specific facts from the cited evidence paragraphs
+       (numbers, dataset names, named method components, stated
+       limitations) that the draft missed even if the verifier did not
+       explicitly flag them.
+    -  If the winning draft is between 800 and 1000 words, address the
+       issues in place and lightly augment with adjacent specifics.
+    -  If the winning draft is already at 900–1100 words, focus on
+       fixing the flagged issues without major restructuring.
 
     Rules:
     1. Output JSON conforming to the RefinerOutput schema.
-    2. Every NEW claim you add (resolving missing_info or fixing
-       factual_error) MUST have evidence_refs pointing to the paragraph
-       cited by the corresponding issue.
-    3. Do NOT introduce claims that aren't in the winning draft AND
-       aren't in the evidence — no new hallucination.
-    4. PREFER specificity over abstraction.
-    5. List the issue IDs you addressed in `issues_addressed`.
+    2. Every NEW claim you add (resolving missing_info, fixing
+       factual_error, or expanding under-covered fields) MUST have
+       evidence_refs pointing to a real paragraph in the cited evidence
+       or in the full paper text.
+    3. Do NOT fabricate. Every numeric, name, or specific fact must
+       trace back to a paper paragraph.
+    4. PREFER specificity over abstraction throughout.
+    5. List the issue IDs you addressed in `issues_addressed`. If you
+       added expansion content beyond the issues, that's fine — just
+       make sure every added fact has a real evidence_ref.
 
   user: |
     Paper Title: {{ paper.title }}

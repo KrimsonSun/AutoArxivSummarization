@@ -1,15 +1,26 @@
 # Comprehensive evaluation: OneVision v3 (Fix 1+2+3 voter) on n=29
 
-**⚠ READ ALSO `EVAL_REPORT_v3_addendum.md`** — corrects two issues
-in this report:
-1. The "DeepSeek-V3 is strongest baseline" claim in §4 is **retracted**.
-   It was a data-quality artifact: 3/29 B2 Qwen baseline files were
-   63-byte error stubs (Qwen API failed during baseline generation),
-   scoring ~0 in eval and depressing B2's mean. After regenerating
-   those 3 baselines, B2 Qwen is the strongest baseline at n=29 under
-   both judges (0.691 strict / 0.572 deberta vs B3 0.664 / 0.546).
-2. Adds Ours_onevision_v3_w (use_winner_as_refiner=True) ablation;
-   that config flip does **not** improve F1.
+**⚠ THIS REPORT'S CONCLUSIONS ARE SUPERSEDED.** The "OneVision is
+worse than every single-LLM baseline" finding here is correct **only
+for the original Stage 1 prompt** that contained defensive language
+making the drafter write 200+ words under its 800-1000 word target.
+The fully-corrected story is in `docs/EVAL_REPORT_v3_long.md`.
+
+Three follow-up reports refine this one:
+
+1. `docs/EVAL_REPORT_v3_addendum.md` — fixes 3 broken B2 Qwen baseline
+   stubs (B2 was depressed by the stubs); retracts the "DeepSeek is
+   strongest" claim from §4 (B2 Qwen is the strongest baseline after
+   the fix); adds Ours_v3_w (use_winner_as_refiner=True) ablation,
+   which does NOT help.
+2. `docs/EVAL_REPORT_v3_long.md` — **PRIMARY REFERENCE.** Rewrites
+   the three OneVision prompts (Stage 1 length-target language +
+   per-field budgets, Stage 3 length-aware verifier, Stage 5
+   expansion mandate) and re-runs n=29. Result: v3_long F1 strict =
+   0.580 (vs v3 = 0.493), beats B4/B5/B6 Llama-family baselines,
+   matches B1 Llama-naive, halves the gap to B2 Qwen and B3 DeepSeek.
+   The pipeline is no longer net-negative once the drafters can use
+   their full word budget.
 
 **Date:** 2026-05-08
 **Branch:** `claude/ecstatic-kowalevski-128f4d`
