@@ -1,0 +1,63 @@
+# =============================================================================
+# OneVision v3 + use_winner_as_refiner=True ablation.
+#
+# Same as default.yaml (claim_grounding voter, anti-padding verifier) but
+# with use_winner_as_refiner=true so the WINNING agent's LLM client
+# refines the draft instead of the static Llama-70B pipeline_llm.
+#
+# Hypothesis: Ours_v3 mean output (483 words) is short because Llama-70B
+# at temperature=0.3 with a sparse anti-padding issue list produces
+# conservative augmentations. When DeepSeek/Qwen wins the vote (15/29
+# papers), Llama is rewriting their longer drafts and losing fact-coverage.
+# This config flips the refiner to the winning agent so each draft is
+# augmented by its own author. Single-round refinement (no iteration) so
+# the only variable changed vs default.yaml is the refiner identity.
+# =============================================================================
+
+pipeline:
+  initial_agents:
+    - id: agent_llama
+      provider: openai
+      model: meta-llama/llama-3.3-70b-instruct
+      temperature: 0.7
+    - id: agent_qwen
+      provider: openai
+      model: qwen/qwen-2.5-72b-instruct
+      temperature: 0.7
+    - id: agent_deepseek
+      provider: openai
+      model: deepseek/deepseek-chat
+      temperature: 0.7
+
+  # Verifier + retriever still use Llama-70B (no change vs default).
+  pipeline_llm:
+    provider: openai
+    model: meta-llama/llama-3.3-70b-instruct
+    temperature: 0.3
+
+  voting:
+    method: claim_grounding
+    rounds: 3      # only used when method == 'borda'
+    seed: 42
+
+  refinement:
+    rounds: 1
+    use_winner_as_refiner: true   # ← the only change vs default.yaml
+
+  max_summary_words: 1000
+
+constraints:
+  max_issues: 12
+  max_evidence_per_issue: 3
+  max_paragraphs_in_refiner_context: 50
+  llm_timeout_seconds: 120
+  max_retries: 2
+
+output:
+  json_output_dir: outputs/json
+  markdown_output_dir: outputs/markdown
+  emit_markdown: true
+
+logging:
+  level: INFO
+  json_logs: true

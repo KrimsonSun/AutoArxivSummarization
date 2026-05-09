@@ -1,5 +1,16 @@
 # Comprehensive evaluation: OneVision v3 (Fix 1+2+3 voter) on n=29
 
+**⚠ READ ALSO `EVAL_REPORT_v3_addendum.md`** — corrects two issues
+in this report:
+1. The "DeepSeek-V3 is strongest baseline" claim in §4 is **retracted**.
+   It was a data-quality artifact: 3/29 B2 Qwen baseline files were
+   63-byte error stubs (Qwen API failed during baseline generation),
+   scoring ~0 in eval and depressing B2's mean. After regenerating
+   those 3 baselines, B2 Qwen is the strongest baseline at n=29 under
+   both judges (0.691 strict / 0.572 deberta vs B3 0.664 / 0.546).
+2. Adds Ours_onevision_v3_w (use_winner_as_refiner=True) ablation;
+   that config flip does **not** improve F1.
+
 **Date:** 2026-05-08
 **Branch:** `claude/ecstatic-kowalevski-128f4d`
 **Pipeline:** Refine-OneVision-Summary v3 (claim_grounding voter, missing_info-as-recall scoring, anti-padding verifier)

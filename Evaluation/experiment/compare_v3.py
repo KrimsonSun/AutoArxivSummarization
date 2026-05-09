@@ -24,6 +24,7 @@ import numpy as np
 EVAL_ROOT = Path(__file__).resolve().parents[1] / "outputs" / "experiment"
 
 PRIMARY = "Ours_onevision_v3"
+WINNER_REFINER = "Ours_onevision_v3_w"  # winner_refiner config (use_winner_as_refiner=True)
 LEGACY_V1 = "Ours_onevision"  # only included if its evals exist
 BASELINES = [
     "B1_llama_naive",
@@ -171,9 +172,13 @@ def paired_diffs(eval_dir: str, papers: list[str], a: str, b: str) -> dict:
 
 
 def render_judge_section(label: str, eval_dir: str, papers: list[str]) -> tuple[dict, list[str]]:
-    methods = [PRIMARY] + BASELINES
+    methods = [PRIMARY]
+    has_winner_refiner = any(load_eval(eval_dir, pid, WINNER_REFINER) is not None for pid in papers)
+    if has_winner_refiner:
+        methods.append(WINNER_REFINER)
+    methods.extend(BASELINES)
     if any(load_eval(eval_dir, pid, LEGACY_V1) is not None for pid in papers):
-        methods.insert(1, LEGACY_V1)
+        methods.insert(2 if has_winner_refiner else 1, LEGACY_V1)
     per_method = per_method_summary(eval_dir, papers, methods)
 
     lines: list[str] = []
@@ -187,7 +192,12 @@ def render_judge_section(label: str, eval_dir: str, papers: list[str]) -> tuple[
         s = per_method[m]
         if s["mean_f1"] is None:
             continue
-        marker = " ⭐" if m == PRIMARY else ""
+        if m == PRIMARY:
+            marker = " ⭐"
+        elif m == WINNER_REFINER:
+            marker = " ⭐⭐"
+        else:
+            marker = ""
         lines.append(
             f"| {m}{marker} | {s['n']} | "
             f"{s['mean_f1']:.3f} | {s['mean_f_half']:.3f} | {s['mean_f_two']:.3f} | "
@@ -214,6 +224,38 @@ def render_judge_section(label: str, eval_dir: str, papers: list[str]) -> tuple[
             f"{d['wins']} / {d['losses']} / {d['ties']} | {sig} |"
         )
     lines.append("")
+    if has_winner_refiner:
+        # Direct comparison: v3 (static Llama refiner) vs v3_w (winner-as-refiner)
+        d = paired_diffs(eval_dir, papers, WINNER_REFINER, PRIMARY)
+        if d["n"]:
+            lines.append("### Direct contrast: v3_w vs v3 (use_winner_as_refiner: True − False)")
+            lines.append("")
+            sig = "**★★**" if d["significant"] else "ns"
+            lines.append(f"- n_paired = {d['n']}")
+            lines.append(f"- ΔF1 (v3_w − v3) = **{d['mean_diff_f1']:+.3f}**, 95 % CI [{d['ci95_low']:+.3f}, {d['ci95_high']:+.3f}], d = {d['cohens_d']:+.2f}, {sig}")
+            lines.append(f"- ΔP = {d['mean_diff_p']:+.3f}, ΔR = {d['mean_diff_r']:+.3f}")
+            lines.append(f"- v3_w wins / losses / ties: {d['wins']} / {d['losses']} / {d['ties']}")
+            lines.append("")
+
+        # v3_w vs each baseline
+        lines.append("### Paired contrasts ΔF1 = Ours_v3_w − baseline (10 000-resample bootstrap)")
+        lines.append("")
+        lines.append("| Baseline | n_paired | mean ΔF1 | 95 % CI | Cohen's d | ΔP | ΔR | W / L / T | sig |")
+        lines.append("|---|---:|---:|---|---:|---:|---:|---|:---:|")
+        for b in BASELINES:
+            d = paired_diffs(eval_dir, papers, WINNER_REFINER, b)
+            if d["n"] == 0:
+                lines.append(f"| {b} | 0 | - | - | - | - | - | - | - |")
+                continue
+            sig = "**★★**" if d["significant"] else "ns"
+            lines.append(
+                f"| {b} | {d['n']} | {d['mean_diff_f1']:+.3f} | "
+                f"[{d['ci95_low']:+.3f}, {d['ci95_high']:+.3f}] | "
+                f"{d['cohens_d']:+.2f} | {d['mean_diff_p']:+.3f} | {d['mean_diff_r']:+.3f} | "
+                f"{d['wins']} / {d['losses']} / {d['ties']} | {sig} |"
+            )
+        lines.append("")
+
     if LEGACY_V1 in methods:
         d = paired_diffs(eval_dir, papers, PRIMARY, LEGACY_V1)
         if d["n"]:

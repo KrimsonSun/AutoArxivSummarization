@@ -68,7 +68,11 @@ def download_paper(arxiv_id: str) -> Path:
     return pdf
 
 
-async def run_one(arxiv_id: str, method_name: str = "Ours_onevision_v3") -> dict:
+async def run_one(
+    arxiv_id: str,
+    method_name: str = "Ours_onevision_v3",
+    config_path: str = "config/default.yaml",
+) -> dict:
     """Run OneVision pipeline on one paper. Returns summary record."""
     sum_dir = SUMS / arxiv_id
     sum_dir.mkdir(parents=True, exist_ok=True)
@@ -94,7 +98,7 @@ async def run_one(arxiv_id: str, method_name: str = "Ours_onevision_v3") -> dict
     from src.config.loader import load_config
     from src.pipeline import OneVisionPipeline
 
-    cfg = load_config("config/default.yaml")
+    cfg = load_config(config_path)
     pipeline = OneVisionPipeline(cfg)
     t0 = time.monotonic()
     final, transcript = await pipeline.run(pdf)
@@ -120,17 +124,24 @@ async def run_one(arxiv_id: str, method_name: str = "Ours_onevision_v3") -> dict
 
 
 async def main() -> int:
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", default="config/default.yaml",
+                        help="OneVision config path (relative to Refine-OneVision-Summary/).")
+    parser.add_argument("--method-name", default="Ours_onevision_v3",
+                        help="Output filename stem under summaries/<id>/.")
+    parser.add_argument("--report-dir", default="reports/n29_run",
+                        help="Where to write summary.{md,json}.")
+    args = parser.parse_args()
+
     # Validate env via centralised settings (same path as the pipeline uses).
     from src.config.settings import settings
     if not settings.OPENAI_API_KEY.get_secret_value().strip():
         log("ERROR: OPENAI_API_KEY unset.")
         return 1
 
-    arxiv_ids = list(PAPER_POOL)  # 30 in the pool; we use the historical "n=29" subset which excluded the originally-failing 2103.00020.
-    # Actually all 30 are valid candidates; we'll run all 30 and see how
-    # many succeed. PER_PAPER_AUDIT had 27-28 evaluable rows; same distribution
-    # is expected.
-    log(f"running OneVision (claim_grounding) on {len(arxiv_ids)} papers")
+    arxiv_ids = list(PAPER_POOL)  # 30 in the pool.
+    log(f"running OneVision (config={args.config}, method={args.method_name}) on {len(arxiv_ids)} papers")
 
     concurrency = int(os.environ.get("EXPERIMENT_CONCURRENCY", "3"))
     sem = asyncio.Semaphore(concurrency)
@@ -139,7 +150,7 @@ async def main() -> int:
     async def _gated(pid: str) -> None:
         async with sem:
             try:
-                r = await run_one(pid)
+                r = await run_one(pid, method_name=args.method_name, config_path=args.config)
                 results.append(r)
             except Exception as e:
                 log(f"  {pid}: FAILED — {type(e).__name__}: {str(e)[:200]}")
@@ -166,6 +177,8 @@ async def main() -> int:
         total_prompt += r.get("tokens_prompt") or 0
         total_completion += r.get("tokens_completion") or 0
 
+    REPORT_OUT = ROOT / args.report_dir
+    REPORT_OUT.mkdir(parents=True, exist_ok=True)
     # Write JSON + Markdown report.
     summary = {
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
@@ -179,9 +192,9 @@ async def main() -> int:
         "winner_distribution": winners,
         "papers": rows,
     }
-    (REPORT_DIR / "summary.json").write_text(json.dumps(summary, indent=2))
+    (REPORT_OUT / "summary.json").write_text(json.dumps(summary, indent=2))
 
-    md = ["# OneVision n=29 (claim_grounding voter, Fix 1+2+3)"]
+    md = [f"# OneVision n=29 — config={args.config}, method={args.method_name}"]
     md.append("")
     md.append(f"- timestamp: {summary['timestamp']}")
     md.append(f"- attempted: {summary['n_attempted']}, successes: {successes}, failures: {len(failures)}")
@@ -230,8 +243,8 @@ async def main() -> int:
             f"{scores_by_agent.get('agent_deepseek','-')} |"
         )
 
-    (REPORT_DIR / "summary.md").write_text("\n".join(md))
-    log(f"wrote {REPORT_DIR/'summary.md'}")
+    (REPORT_OUT / "summary.md").write_text("\n".join(md))
+    log(f"wrote {REPORT_OUT/'summary.md'}")
     log(f"  successes: {successes}, failures: {len(failures)}")
     log(f"  winner_distribution: {winners}")
     return 0
