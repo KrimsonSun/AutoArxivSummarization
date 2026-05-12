@@ -30,7 +30,8 @@ pipeline:
     temperature: 0.3
 
   voting:
-    rounds: 3
+    method: claim_grounding   # Fix 3 voter (same as default.yaml / winner_refiner.yaml)
+    rounds: 3                  # ignored when method == claim_grounding
     seed: 42
 
   refinement:
