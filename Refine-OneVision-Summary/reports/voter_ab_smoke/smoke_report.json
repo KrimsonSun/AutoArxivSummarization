@@ -1,0 +1,421 @@
+{
+  "timestamp": "2026-05-07T20:04:31",
+  "n_papers": 5,
+  "papers": [
+    {
+      "arxiv_id": "2004.04906",
+      "results": {
+        "claim_grounding": {
+          "method": "claim_grounding",
+          "winner_agent_id": "agent_qwen",
+          "winner_label": "D1",
+          "per_label_borda": {
+            "D1": 3.0,
+            "D3": 2.0,
+            "D2": 1.0
+          },
+          "label_to_agent": {
+            "D2": "agent_llama",
+            "D1": "agent_qwen",
+            "D3": "agent_deepseek"
+          },
+          "claim_grounding_scores": [
+            {
+              "draft_label": "D1",
+              "agent_id": "agent_qwen",
+              "word_count": 631,
+              "n_factual_error": 0,
+              "n_missing_info": 4,
+              "n_unsupported_claim": 1,
+              "n_ambiguity": 0,
+              "n_total_issues": 5,
+              "issues_per_100_words": 0.6339144215530904
+            },
+            {
+              "draft_label": "D2",
+              "agent_id": "agent_llama",
+              "word_count": 362,
+              "n_factual_error": 0,
+              "n_missing_info": 4,
+              "n_unsupported_claim": 1,
+              "n_ambiguity": 0,
+              "n_total_issues": 5,
+              "issues_per_100_words": 1.1049723756906078
+            },
+            {
+              "draft_label": "D3",
+              "agent_id": "agent_deepseek",
+              "word_count": 430,
+              "n_factual_error": 0,
+              "n_missing_info": 4,
+              "n_unsupported_claim": 1,
+              "n_ambiguity": 0,
+              "n_total_issues": 5,
+              "issues_per_100_words": 0.9302325581395349
+            }
+          ],
+          "tokens_prompt": 97384,
+          "tokens_completion": 6706,
+          "total_calls": 12,
+          "n_issues_raised": 5,
+          "n_issues_addressed": 5,
+          "wall_seconds": 189.3
+        },
+        "borda": {
+          "method": "borda",
+          "winner_agent_id": "agent_qwen",
+          "winner_label": "D1",
+          "per_label_borda": {
+            "D1": 16.0,
+            "D2": 6.0,
+            "D3": 14.0
+          },
+          "label_to_agent": {
+            "D2": "agent_llama",
+            "D1": "agent_qwen",
+            "D3": "agent_deepseek"
+          },
+          "claim_grounding_scores": [],
+          "tokens_prompt": 107485,
+          "tokens_completion": 8292,
+          "total_calls": 18,
+          "n_issues_raised": 4,
+          "n_issues_addressed": 4,
+          "wall_seconds": 198.0
+        }
+      }
+    },
+    {
+      "arxiv_id": "1706.03762",
+      "results": {
+        "claim_grounding": {
+          "method": "claim_grounding",
+          "winner_agent_id": "agent_qwen",
+          "winner_label": "D1",
+          "per_label_borda": {
+            "D1": 3.0,
+            "D3": 2.0,
+            "D2": 1.0
+          },
+          "label_to_agent": {
+            "D2": "agent_llama",
+            "D1": "agent_qwen",
+            "D3": "agent_deepseek"
+          },
+          "claim_grounding_scores": [
+            {
+              "draft_label": "D1",
+              "agent_id": "agent_qwen",
+              "word_count": 636,
+              "n_factual_error": 0,
+              "n_missing_info": 2,
+              "n_unsupported_claim": 1,
+              "n_ambiguity": 0,
+              "n_total_issues": 3,
+              "issues_per_100_words": 0.31446540880503143
+            },
+            {
+              "draft_label": "D2",
+              "agent_id": "agent_llama",
+              "word_count": 336,
+              "n_factual_error": 0,
+              "n_missing_info": 4,
+              "n_unsupported_claim": 0,
+              "n_ambiguity": 0,
+              "n_total_issues": 4,
+              "issues_per_100_words": 1.1904761904761905
+            },
+            {
+              "draft_label": "D3",
+              "agent_id": "agent_deepseek",
+              "word_count": 410,
+              "n_factual_error": 0,
+              "n_missing_info": 3,
+              "n_unsupported_claim": 0,
+              "n_ambiguity": 0,
+              "n_total_issues": 3,
+              "issues_per_100_words": 0.7317073170731708
+            }
+          ],
+          "tokens_prompt": 49908,
+          "tokens_completion": 6304,
+          "total_calls": 10,
+          "n_issues_raised": 3,
+          "n_issues_addressed": 3,
+          "wall_seconds": 163.3
+        },
+        "borda": {
+          "method": "borda",
+          "winner_agent_id": "agent_qwen",
+          "winner_label": "D1",
+          "per_label_borda": {
+            "D1": 19.0,
+            "D2": 9.0,
+            "D3": 14.0
+          },
+          "label_to_agent": {
+            "D2": "agent_llama",
+            "D1": "agent_qwen",
+            "D3": "agent_deepseek"
+          },
+          "claim_grounding_scores": [],
+          "tokens_prompt": 81960,
+          "tokens_completion": 9360,
+          "total_calls": 17,
+          "n_issues_raised": 3,
+          "n_issues_addressed": 3,
+          "wall_seconds": 333.7
+        }
+      }
+    },
+    {
+      "arxiv_id": "2210.03629",
+      "results": {
+        "claim_grounding": {
+          "method": "claim_grounding",
+          "winner_agent_id": "agent_qwen",
+          "winner_label": "D1",
+          "per_label_borda": {
+            "D1": 3.0,
+            "D3": 2.0,
+            "D2": 1.0
+          },
+          "label_to_agent": {
+            "D2": "agent_llama",
+            "D1": "agent_qwen",
+            "D3": "agent_deepseek"
+          },
+          "claim_grounding_scores": [
+            {
+              "draft_label": "D1",
+              "agent_id": "agent_qwen",
+              "word_count": 567,
+              "n_factual_error": 1,
+              "n_missing_info": 2,
+              "n_unsupported_claim": 1,
+              "n_ambiguity": 0,
+              "n_total_issues": 4,
+              "issues_per_100_words": 0.3527336860670194
+            },
+            {
+              "draft_label": "D2",
+              "agent_id": "agent_llama",
+              "word_count": 293,
+              "n_factual_error": 0,
+              "n_missing_info": 3,
+              "n_unsupported_claim": 0,
+              "n_ambiguity": 0,
+              "n_total_issues": 3,
+              "issues_per_100_words": 1.023890784982935
+            },
+            {
+              "draft_label": "D3",
+              "agent_id": "agent_deepseek",
+              "word_count": 339,
+              "n_factual_error": 1,
+              "n_missing_info": 3,
+              "n_unsupported_claim": 1,
+              "n_ambiguity": 0,
+              "n_total_issues": 5,
+              "issues_per_100_words": 0.8849557522123893
+            }
+          ],
+          "tokens_prompt": 224248,
+          "tokens_completion": 5966,
+          "total_calls": 11,
+          "n_issues_raised": 4,
+          "n_issues_addressed": 4,
+          "wall_seconds": 173.1
+        },
+        "borda": {
+          "method": "borda",
+          "winner_agent_id": "agent_qwen",
+          "winner_label": "D1",
+          "per_label_borda": {
+            "D1": 18.0,
+            "D2": 7.0,
+            "D3": 11.0
+          },
+          "label_to_agent": {
+            "D2": "agent_llama",
+            "D1": "agent_qwen",
+            "D3": "agent_deepseek"
+          },
+          "claim_grounding_scores": [],
+          "tokens_prompt": 199851,
+          "tokens_completion": 8604,
+          "total_calls": 17,
+          "n_issues_raised": 3,
+          "n_issues_addressed": 3,
+          "wall_seconds": 339.4
+        }
+      }
+    },
+    {
+      "arxiv_id": "2005.11401",
+      "results": {
+        "claim_grounding": {
+          "method": "claim_grounding",
+          "winner_agent_id": "agent_qwen",
+          "winner_label": "D1",
+          "per_label_borda": {
+            "D1": 3.0,
+            "D2": 2.0,
+            "D3": 1.0
+          },
+          "label_to_agent": {
+            "D2": "agent_llama",
+            "D1": "agent_qwen",
+            "D3": "agent_deepseek"
+          },
+          "claim_grounding_scores": [
+            {
+              "draft_label": "D1",
+              "agent_id": "agent_qwen",
+              "word_count": 702,
+              "n_factual_error": 0,
+              "n_missing_info": 5,
+              "n_unsupported_claim": 0,
+              "n_ambiguity": 0,
+              "n_total_issues": 5,
+              "issues_per_100_words": 0.7122507122507123
+            },
+            {
+              "draft_label": "D2",
+              "agent_id": "agent_llama",
+              "word_count": 382,
+              "n_factual_error": 0,
+              "n_missing_info": 3,
+              "n_unsupported_claim": 1,
+              "n_ambiguity": 0,
+              "n_total_issues": 4,
+              "issues_per_100_words": 0.7853403141361257
+            },
+            {
+              "draft_label": "D3",
+              "agent_id": "agent_deepseek",
+              "word_count": 407,
+              "n_factual_error": 0,
+              "n_missing_info": 4,
+              "n_unsupported_claim": 0,
+              "n_ambiguity": 0,
+              "n_total_issues": 4,
+              "issues_per_100_words": 0.9828009828009827
+            }
+          ],
+          "tokens_prompt": 90137,
+          "tokens_completion": 6757,
+          "total_calls": 12,
+          "n_issues_raised": 0,
+          "n_issues_addressed": 0,
+          "wall_seconds": 199.5
+        },
+        "borda": {
+          "method": "borda",
+          "winner_agent_id": "agent_qwen",
+          "winner_label": "D1",
+          "per_label_borda": {
+            "D1": 18.0,
+            "D2": 6.0,
+            "D3": 12.0
+          },
+          "label_to_agent": {
+            "D2": "agent_llama",
+            "D1": "agent_qwen",
+            "D3": "agent_deepseek"
+          },
+          "claim_grounding_scores": [],
+          "tokens_prompt": 109667,
+          "tokens_completion": 9339,
+          "total_calls": 18,
+          "n_issues_raised": 4,
+          "n_issues_addressed": 4,
+          "wall_seconds": 275.8
+        }
+      }
+    },
+    {
+      "arxiv_id": "2308.08155",
+      "results": {
+        "claim_grounding": {
+          "method": "claim_grounding",
+          "winner_agent_id": "agent_qwen",
+          "winner_label": "D1",
+          "per_label_borda": {
+            "D1": 3.0,
+            "D3": 2.0,
+            "D2": 1.0
+          },
+          "label_to_agent": {
+            "D2": "agent_llama",
+            "D1": "agent_qwen",
+            "D3": "agent_deepseek"
+          },
+          "claim_grounding_scores": [
+            {
+              "draft_label": "D1",
+              "agent_id": "agent_qwen",
+              "word_count": 662,
+              "n_factual_error": 0,
+              "n_missing_info": 4,
+              "n_unsupported_claim": 0,
+              "n_ambiguity": 0,
+              "n_total_issues": 4,
+              "issues_per_100_words": 0.6042296072507553
+            },
+            {
+              "draft_label": "D2",
+              "agent_id": "agent_llama",
+              "word_count": 411,
+              "n_factual_error": 0,
+              "n_missing_info": 5,
+              "n_unsupported_claim": 0,
+              "n_ambiguity": 0,
+              "n_total_issues": 5,
+              "issues_per_100_words": 1.21654501216545
+            },
+            {
+              "draft_label": "D3",
+              "agent_id": "agent_deepseek",
+              "word_count": 354,
+              "n_factual_error": 0,
+              "n_missing_info": 3,
+              "n_unsupported_claim": 1,
+              "n_ambiguity": 0,
+              "n_total_issues": 4,
+              "issues_per_100_words": 0.847457627118644
+            }
+          ],
+          "tokens_prompt": 84426,
+          "tokens_completion": 6744,
+          "total_calls": 11,
+          "n_issues_raised": 4,
+          "n_issues_addressed": 4,
+          "wall_seconds": 181.5
+        },
+        "borda": {
+          "method": "borda",
+          "winner_agent_id": "agent_qwen",
+          "winner_label": "D1",
+          "per_label_borda": {
+            "D1": 18.0,
+            "D2": 9.0,
+            "D3": 15.0
+          },
+          "label_to_agent": {
+            "D2": "agent_llama",
+            "D1": "agent_qwen",
+            "D3": "agent_deepseek"
+          },
+          "claim_grounding_scores": [],
+          "tokens_prompt": 104664,
+          "tokens_completion": 8632,
+          "total_calls": 18,
+          "n_issues_raised": 4,
+          "n_issues_addressed": 4,
+          "wall_seconds": 256.7
+        }
+      }
+    }
+  ]
+}

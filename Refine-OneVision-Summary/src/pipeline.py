@@ -33,6 +33,7 @@ from pathlib import Path
 
 from src.agents import (
     DEFAULT_MAX_WORDS,
+    ClaimGroundingVoter,
     EvidenceRetrieverAgent,
     GameTheoryVoter,
     InitialSummarizerAgent,
@@ -109,18 +110,35 @@ class OneVisionPipeline:
             InitialSummarizerAgent(client=c, agent_id=aid)
             for aid, c in self._initial_clients
         ]
-        # Voter uses the same 3 LLMs as the drafters.
-        voting_cfg = getattr(config.pipeline, "voting", None)
-        self._voter = GameTheoryVoter(
-            voters=[
-                VoterClient(agent_id=aid, client=c)
-                for aid, c in self._initial_clients
-            ],
-            rounds=voting_cfg.rounds if voting_cfg else 3,
-            seed=voting_cfg.seed if voting_cfg else 42,
-        )
+        # Verifier (always built; reused by Stage 3 and, in claim_grounding
+        # mode, also by Stage 2).
         self._verifier = SingleDraftVerifierAgent(client=self._pipeline_client)
         self._retriever = EvidenceRetrieverAgent(client=self._pipeline_client)
+
+        # Stage 2 voter — pick by config.voting.method.
+        voting_cfg = getattr(config.pipeline, "voting", None)
+        self._voting_method = (voting_cfg.method if voting_cfg else "claim_grounding").lower()
+        if self._voting_method == "borda":
+            self._borda_voter: GameTheoryVoter | None = GameTheoryVoter(
+                voters=[
+                    VoterClient(agent_id=aid, client=c)
+                    for aid, c in self._initial_clients
+                ],
+                rounds=voting_cfg.rounds if voting_cfg else 3,
+                seed=voting_cfg.seed if voting_cfg else 42,
+            )
+            self._claim_voter: ClaimGroundingVoter | None = None
+        elif self._voting_method == "claim_grounding":
+            self._borda_voter = None
+            self._claim_voter = ClaimGroundingVoter(
+                verifier=self._verifier,
+                seed=voting_cfg.seed if voting_cfg else 42,
+            )
+        else:
+            raise ValueError(
+                f"Unknown voting.method: {self._voting_method!r}; "
+                f"expected 'borda' or 'claim_grounding'."
+            )
         # Default refiner uses pipeline_llm; the run() method may swap it
         # for the winning agent's client per-paper if use_winner_as_refiner.
         self._default_refiner = SingleDraftRefinerAgent(
@@ -196,9 +214,9 @@ class OneVisionPipeline:
             max_words=self.max_words,
         )
 
-        # ---------------- Stage 2: 3-round game-theory voting.
-        # Voter requires exactly 3; if one drafter failed, fall back to using
-        # the first successful summary directly without voting.
+        # ---------------- Stage 2: voting (method dispatched by config).
+        # Both methods require exactly 3 drafts; if one drafter failed, fall
+        # back to using the first successful summary directly without voting.
         if len(initial_summaries) < 3:
             self.log.warning(
                 "voter_fallback_too_few_drafts",
@@ -206,13 +224,21 @@ class OneVisionPipeline:
             )
             winning_draft = initial_summaries[0]
             transcript: VotingTranscript = _trivial_transcript(initial_summaries)
-        else:
-            transcript = await self._voter.run(initial_summaries)
+        elif self._voting_method == "claim_grounding":
+            assert self._claim_voter is not None
+            transcript = await self._claim_voter.run(paper, initial_summaries)
+            winning_draft = next(
+                d for d in initial_summaries if d.agent_id == transcript.winner_agent_id
+            )
+        else:  # borda
+            assert self._borda_voter is not None
+            transcript = await self._borda_voter.run(initial_summaries)
             winning_draft = next(
                 d for d in initial_summaries if d.agent_id == transcript.winner_agent_id
             )
         self.log.info(
             "voter_complete",
+            method=self._voting_method,
             winner_agent=transcript.winner_agent_id,
             winner_label=transcript.winner_label,
             borda=transcript.per_label_borda,
@@ -238,22 +264,40 @@ class OneVisionPipeline:
         all_evidence: list[EvidenceBundle] = []
         issues_addressed_total: list[str] = []
 
+        # In claim_grounding mode, Stage 2's voter already ran the verifier
+        # on the winning draft. Reuse those issues for round 1 to avoid the
+        # duplicate verifier call. Subsequent refinement rounds (if any)
+        # still re-run the verifier on the refined output.
+        prefetched_round1_issues: list[Issue] | None = (
+            list(transcript.precomputed_winner_issues)
+            if transcript.precomputed_winner_issues is not None
+            else None
+        )
+
         for round_idx in range(1, self.refinement_rounds + 1):
-            try:
-                issues = await self._verifier.run(paper, current_draft)
-            except Exception as e:
-                self.log.warning(
-                    "verifier_failed",
+            if round_idx == 1 and prefetched_round1_issues is not None:
+                issues = prefetched_round1_issues
+                self.log.info(
+                    "issues_reused_from_voter",
                     round=round_idx,
-                    err=str(e)[:300],
-                    err_type=type(e).__name__,
+                    count=len(issues),
                 )
-                issues = []
-            self.log.info(
-                "issues_raised",
-                round=round_idx,
-                count=len(issues),
-            )
+            else:
+                try:
+                    issues = await self._verifier.run(paper, current_draft)
+                except Exception as e:
+                    self.log.warning(
+                        "verifier_failed",
+                        round=round_idx,
+                        err=str(e)[:300],
+                        err_type=type(e).__name__,
+                    )
+                    issues = []
+                self.log.info(
+                    "issues_raised",
+                    round=round_idx,
+                    count=len(issues),
+                )
 
             if not issues:
                 # Nothing to fix this round; further rounds also won't have
@@ -446,6 +490,7 @@ class OneVisionPipeline:
 def _trivial_transcript(drafts: list[InitialSummary]) -> VotingTranscript:
     """No-vote fallback: rank drafts in input order with rank=1."""
     return VotingTranscript(
+        method="trivial_fallback",
         voter_ids=[],
         label_to_agent={f"D{i+1}": d.agent_id for i, d in enumerate(drafts)},
         rounds=[],

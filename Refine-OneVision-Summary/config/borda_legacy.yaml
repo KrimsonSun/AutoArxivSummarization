@@ -1,12 +1,13 @@
 # =============================================================================
-# OneVision iterative variant: 3-round refinement with the winning agent
-# acting as refiner. Use this config to test whether dynamic-refiner +
-# K-round refinement beats the v1 (single-pass, Llama-static-refiner)
-# OneVision setup.
+# Refine-OneVision-Summary default config.
+#
+# OpenRouter wiring: set OPENAI_BASE_URL=https://openrouter.ai/api/v1 and
+# OPENAI_API_KEY=sk-or-v1-... in .env. All three drafters run via OpenRouter;
+# heterogeneity comes from picking three different model identities.
 # =============================================================================
 
 pipeline:
-  # Same 3 drafters as default.yaml.
+  # Stage 1 drafters — 3 heterogeneous LLMs.
   initial_agents:
     - id: agent_llama
       provider: openai
@@ -21,27 +22,24 @@ pipeline:
       model: deepseek/deepseek-chat
       temperature: 0.7
 
-  # Verifier + retriever still use Llama-70B (cheaper + the verifier
-  # prompt was tuned on Llama). The refiner is replaced per-paper by the
-  # winning agent's client when use_winner_as_refiner=true.
+  # Stage 3 verifier + Stage 4 retriever + Stage 5 refiner all share this client.
+  # Llama 3.3 70B has 128k context, comfortably fitting full paper paragraphs.
   pipeline_llm:
     provider: openai
     model: meta-llama/llama-3.3-70b-instruct
     temperature: 0.3
 
+  # Stage 2 voting / draft selection.
+  # Default v2: claim_grounding — runs the verifier on each of the 3
+  # drafts and picks the one with the lowest issue density per 100 words.
+  # See docs/BUG_REPORT_voter_bias.md for why we replaced the legacy
+  # Borda voter; set method: borda for backward-compatible ablation.
   voting:
-    method: claim_grounding   # Fix 3 voter (same as default.yaml / winner_refiner.yaml)
-    rounds: 3                  # ignored when method == claim_grounding
+    method: borda
+    rounds: 3      # only used when method == 'borda'
     seed: 42
 
-  refinement:
-    # 3 rounds of (verify → retrieve → refine), each round's output
-    # feeds the next round's verifier.
-    rounds: 3
-    # Refiner uses the winning agent's LLMClient instead of the static
-    # pipeline_llm, so a Qwen winner is refined by Qwen, etc.
-    use_winner_as_refiner: true
-
+  # Hard word cap for both drafts and final summary.
   max_summary_words: 1000
 
 constraints:

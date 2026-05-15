@@ -1,0 +1,18 @@
+E26 — DPR case-study (paper 2004.04906, 'Dense Passage Retrieval for Open-Domain Question Answering')
+  source: RefinedSummarization/paper/stats.json -> case_studies_largest_gap_vs_B2
+
+  Ours_v1   F1 = 0.181, P = 0.957, R = 0.100, claims = 23
+  B2 Qwen   F1 = 0.824, P = 1.000, R = 0.700, claims = 24
+  Δ F1      = -0.642
+  paper_claims (gold) = 15
+  fact-coverage Ours = 10.0% (recall) -- approx (paper-claim count = 15)
+  fact-coverage B2   = 70.0% (recall)
+
+  paired_diffs cross-check:
+    ours_strict = 0.181, b2_strict = 0.824
+    ours_deberta = 0.161, b2_deberta = 0.576
+
+L5 VERDICT:
+  chat-quoted '0.18 vs 0.82' vs actual 0.181 vs 0.824
+  err Ours = 0.001, err B2 = 0.004
+  -> CONFIRMED: chat-quoted numbers match stats.json (rounded to 2 dp).

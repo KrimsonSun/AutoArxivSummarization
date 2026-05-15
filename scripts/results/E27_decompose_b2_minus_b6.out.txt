@@ -1,0 +1,31 @@
+E27 — Backbone-swap decomposition Δ(B2 − B6)
+  paired-source: Evaluation/outputs/experiment/onevision_summary.json (gitignored — not in repo)
+  fallback-source: Refine-OneVision-Summary/paper/RESULTS_TABLE.md (means + n per cell)
+
+[strict-LLM judge]
+  B2 Qwen     mean F1 = 0.645  (n=24)
+  B6 Llama-v2 mean F1 = 0.478  (n=25)
+  Δ(B2 − B6) unpaired = +0.167   [L9 hypothesis: ~+0.16]
+  Δ(OneVision − B6)    = +0.106        [paired, published]
+  augmenter component  = Δ(OV − B6) − Δ(B2 − B6) = -0.061
+  -> Decomposition: backbone swap (Llama→Qwen) contributes +0.167,
+     augmenter degrades by -0.061. Net OneVision over B6 = +0.106.
+
+[deberta-LLM judge]
+  B2 Qwen     mean F1 = 0.559  (n=26)
+  B6 Llama-v2 mean F1 = 0.389  (n=26)
+  Δ(B2 − B6) unpaired = +0.170   [L9 hypothesis: ~+0.17]
+  Δ(OneVision − B6)    = +0.126        [paired, published]
+  augmenter component  = Δ(OV − B6) − Δ(B2 − B6) = -0.044
+  -> Decomposition: backbone swap (Llama→Qwen) contributes +0.170,
+     augmenter degrades by -0.044. Net OneVision over B6 = +0.126.
+
+Hypothesis check (L9):
+  L9 expected Δ(B2−B6) ≈ +0.16 strict / +0.17 deberta
+  observed (unpaired): +0.167 strict, +0.170 deberta
+  -> L9 numerical claim CONFIRMED (within 0.03)
+
+CAVEAT: paired CI not computable without onevision_summary.json. 
+Per-paper B6 vectors live in Evaluation/outputs/experiment/onevision_summary.json
+(gitignored). Promote that file to a committed artifact (or write a per-paper
+export hook in compare_onevision.py) to enable a paired bootstrap re-run.

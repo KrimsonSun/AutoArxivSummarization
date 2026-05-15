@@ -80,8 +80,13 @@ async def reeval_one_paper(
         return {}
 
     # 2) Find every summary file for this paper.
+    # Skip *.voting.json files — those are voter transcripts emitted alongside
+    # the OneVision summary (e.g. Ours_onevision_v3.voting.json) and must not
+    # be evaluated as if they were summaries.
     summary_files: list[tuple[str, Path]] = []
     for p in sorted(sum_dir.iterdir()):
+        if p.name.endswith(".voting.json"):
+            continue
         if p.suffix == ".json":
             method = p.stem  # "Ours"
             summary_files.append((method, p))

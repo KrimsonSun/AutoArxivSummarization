@@ -41,6 +41,29 @@ class InitialSummary(BaseModel):
     experiments: ExperimentsBlock
     limitations: list[str] = Field(default_factory=list)
 
+    def anon_json(self, indent: int = 2) -> str:
+        # Voters / verifiers must NOT see agent_id. The previous prompt
+        # template called model_dump_json() which leaked authorship into the
+        # JSON dump's first key, breaking the supposed D1/D2/D3 anonymisation.
+        return self.model_dump_json(exclude={"agent_id"}, indent=indent)
+
+    def word_count(self) -> int:
+        # Total words across all string fields. Used for length-normalised
+        # voter scoring (issues per 100 words).
+        parts: list[str] = [self.tldr, self.core_idea]
+        for c in self.key_contributions:
+            parts.append(c.text)
+        if self.method:
+            parts.append(self.method.overview or "")
+            for comp in (self.method.components or []):
+                parts.append(comp.description or "")
+        if self.experiments:
+            parts.append(self.experiments.setup or "")
+            for f in (self.experiments.key_findings or []):
+                parts.append(f.text)
+        parts.extend(self.limitations or [])
+        return sum(len((p or "").split()) for p in parts)
+
 
 class FinalSummaryMetadata(BaseModel):
     arxiv_id: str | None = None

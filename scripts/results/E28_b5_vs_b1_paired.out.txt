@@ -1,0 +1,17 @@
+E28 — B5 vs B1 paired bootstrap, n_common = 27
+  source: RefinedSummarization/paper/stats.json
+
+[strict-LLM judge]  n_paired = 27
+  mean B5 = 0.398,  mean B1 = 0.410
+  ΔF1(B5 − B1) = -0.0117   95 % CI [-0.0807, +0.0540]   d = -0.063   ns
+  W/L/T (B5 over B1) = 12/15/0
+
+[DeBERTa-NLI judge]  n_paired = 27
+  mean B5 = 0.350,  mean B1 = 0.360
+  ΔF1(B5 − B1) = -0.0100   95 % CI [-0.0579, +0.0379]   d = -0.076   ns
+  W/L/T (B5 over B1) = 11/15/1
+
+L6 verdict (M4 retraction):
+  M4 'schema rewards abstraction' was retracted because B5−B1 was −0.04 (ns) in unpaired means.
+  Paired bootstrap above quantifies whether that null is a confidently null result, or just
+  underpowered. CI excluding 0 in either direction would mean L6 needs softening.

@@ -1,0 +1,1069 @@
+{
+  "timestamp": "2026-05-11T18:01:17",
+  "method": "claim_grounding (Fix 1+2+3)",
+  "n_attempted": 30,
+  "n_successes": 28,
+  "n_failures": 2,
+  "wall_seconds": 2684.5,
+  "tokens_prompt_total": 6565943,
+  "tokens_completion_total": 396484,
+  "winner_distribution": {
+    "agent_llama": 16,
+    "agent_qwen": 10,
+    "agent_deepseek": 2
+  },
+  "papers": [
+    {
+      "arxiv_id": "1706.03762",
+      "winner_agent_id": "agent_llama",
+      "claim_grounding_scores": null,
+      "tokens_prompt": 129719,
+      "tokens_completion": 12273,
+      "n_issues": 19,
+      "cached": true
+    },
+    {
+      "arxiv_id": "1707.06347",
+      "winner_agent_id": "agent_qwen",
+      "claim_grounding_scores": [
+        {
+          "draft_label": "D1",
+          "agent_id": "agent_qwen",
+          "word_count": 813,
+          "n_factual_error": 0,
+          "n_missing_info": 5,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 5,
+          "issues_per_100_words": 5.0
+        },
+        {
+          "draft_label": "D2",
+          "agent_id": "agent_llama",
+          "word_count": 630,
+          "n_factual_error": 0,
+          "n_missing_info": 6,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 6,
+          "issues_per_100_words": 6.0
+        },
+        {
+          "draft_label": "D3",
+          "agent_id": "agent_deepseek",
+          "word_count": 625,
+          "n_factual_error": 0,
+          "n_missing_info": 6,
+          "n_unsupported_claim": 1,
+          "n_ambiguity": 1,
+          "n_total_issues": 8,
+          "issues_per_100_words": 6.0
+        }
+      ],
+      "tokens_prompt": 164274,
+      "tokens_completion": 16087,
+      "n_issues": 15,
+      "cached": true
+    },
+    {
+      "arxiv_id": "1810.04805",
+      "winner_agent_id": "agent_qwen",
+      "claim_grounding_scores": [
+        {
+          "draft_label": "D1",
+          "agent_id": "agent_qwen",
+          "word_count": 653,
+          "n_factual_error": 0,
+          "n_missing_info": 5,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 5,
+          "issues_per_100_words": 5.0
+        },
+        {
+          "draft_label": "D2",
+          "agent_id": "agent_llama",
+          "word_count": 580,
+          "n_factual_error": 0,
+          "n_missing_info": 6,
+          "n_unsupported_claim": 1,
+          "n_ambiguity": 1,
+          "n_total_issues": 8,
+          "issues_per_100_words": 6.0
+        },
+        {
+          "draft_label": "D3",
+          "agent_id": "agent_deepseek",
+          "word_count": 656,
+          "n_factual_error": 0,
+          "n_missing_info": 5,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 5,
+          "issues_per_100_words": 5.0
+        }
+      ],
+      "tokens_prompt": 394590,
+      "tokens_completion": 15357,
+      "n_issues": 18,
+      "cached": true
+    },
+    {
+      "arxiv_id": "2001.08361",
+      "error": "LLMError: OpenAI returned non-JSON content (model=meta-llama/llama-3.3-70b-instruct): "
+    },
+    {
+      "arxiv_id": "2004.04906",
+      "winner_agent_id": "agent_llama",
+      "claim_grounding_scores": null,
+      "tokens_prompt": 254517,
+      "tokens_completion": 11425,
+      "n_issues": 24,
+      "cached": true
+    },
+    {
+      "arxiv_id": "2005.11401",
+      "winner_agent_id": "agent_qwen",
+      "claim_grounding_scores": [
+        {
+          "draft_label": "D1",
+          "agent_id": "agent_qwen",
+          "word_count": 790,
+          "n_factual_error": 0,
+          "n_missing_info": 5,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 5,
+          "issues_per_100_words": 5.0
+        },
+        {
+          "draft_label": "D2",
+          "agent_id": "agent_llama",
+          "word_count": 561,
+          "n_factual_error": 0,
+          "n_missing_info": 8,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 8,
+          "issues_per_100_words": 8.0
+        },
+        {
+          "draft_label": "D3",
+          "agent_id": "agent_deepseek",
+          "word_count": 783,
+          "n_factual_error": 0,
+          "n_missing_info": 8,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 8,
+          "issues_per_100_words": 8.0
+        }
+      ],
+      "tokens_prompt": 216757,
+      "tokens_completion": 14318,
+      "n_issues": 11,
+      "cached": true
+    },
+    {
+      "arxiv_id": "2005.14165",
+      "winner_agent_id": "agent_llama",
+      "claim_grounding_scores": [
+        {
+          "draft_label": "D1",
+          "agent_id": "agent_qwen",
+          "word_count": 647,
+          "n_factual_error": 0,
+          "n_missing_info": 8,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 8,
+          "issues_per_100_words": 8.0
+        },
+        {
+          "draft_label": "D2",
+          "agent_id": "agent_llama",
+          "word_count": 700,
+          "n_factual_error": 0,
+          "n_missing_info": 5,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 5,
+          "issues_per_100_words": 5.0
+        },
+        {
+          "draft_label": "D3",
+          "agent_id": "agent_deepseek",
+          "word_count": 757,
+          "n_factual_error": 0,
+          "n_missing_info": 8,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 8,
+          "issues_per_100_words": 8.0
+        }
+      ],
+      "tokens_prompt": 234983,
+      "tokens_completion": 17004,
+      "n_issues": 21,
+      "cached": true
+    },
+    {
+      "arxiv_id": "2006.11239",
+      "winner_agent_id": "agent_llama",
+      "claim_grounding_scores": [
+        {
+          "draft_label": "D1",
+          "agent_id": "agent_qwen",
+          "word_count": 592,
+          "n_factual_error": 0,
+          "n_missing_info": 5,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 5,
+          "issues_per_100_words": 5.0
+        },
+        {
+          "draft_label": "D2",
+          "agent_id": "agent_llama",
+          "word_count": 623,
+          "n_factual_error": 0,
+          "n_missing_info": 4,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 4,
+          "issues_per_100_words": 4.0
+        },
+        {
+          "draft_label": "D3",
+          "agent_id": "agent_deepseek",
+          "word_count": 594,
+          "n_factual_error": 0,
+          "n_missing_info": 5,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 5,
+          "issues_per_100_words": 5.0
+        }
+      ],
+      "tokens_prompt": 282768,
+      "tokens_completion": 13569,
+      "n_issues": 15,
+      "cached": true
+    },
+    {
+      "arxiv_id": "2010.11929",
+      "winner_agent_id": "agent_qwen",
+      "claim_grounding_scores": [
+        {
+          "draft_label": "D1",
+          "agent_id": "agent_qwen",
+          "word_count": 722,
+          "n_factual_error": 0,
+          "n_missing_info": 6,
+          "n_unsupported_claim": 1,
+          "n_ambiguity": 1,
+          "n_total_issues": 8,
+          "issues_per_100_words": 6.0
+        },
+        {
+          "draft_label": "D2",
+          "agent_id": "agent_llama",
+          "word_count": 790,
+          "n_factual_error": 0,
+          "n_missing_info": 6,
+          "n_unsupported_claim": 1,
+          "n_ambiguity": 1,
+          "n_total_issues": 8,
+          "issues_per_100_words": 6.0
+        },
+        {
+          "draft_label": "D3",
+          "agent_id": "agent_deepseek",
+          "word_count": 616,
+          "n_factual_error": 0,
+          "n_missing_info": 6,
+          "n_unsupported_claim": 1,
+          "n_ambiguity": 1,
+          "n_total_issues": 8,
+          "issues_per_100_words": 6.0
+        }
+      ],
+      "tokens_prompt": 224537,
+      "tokens_completion": 16283,
+      "n_issues": 20,
+      "cached": true
+    },
+    {
+      "arxiv_id": "2103.00020",
+      "winner_agent_id": "agent_llama",
+      "claim_grounding_scores": [
+        {
+          "draft_label": "D1",
+          "agent_id": "agent_qwen",
+          "word_count": 648,
+          "n_factual_error": 0,
+          "n_missing_info": 8,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 8,
+          "issues_per_100_words": 8.0
+        },
+        {
+          "draft_label": "D2",
+          "agent_id": "agent_llama",
+          "word_count": 671,
+          "n_factual_error": 0,
+          "n_missing_info": 5,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 5,
+          "issues_per_100_words": 5.0
+        },
+        {
+          "draft_label": "D3",
+          "agent_id": "agent_deepseek",
+          "word_count": 674,
+          "n_factual_error": 0,
+          "n_missing_info": 8,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 8,
+          "issues_per_100_words": 8.0
+        }
+      ],
+      "tokens_prompt": 259739,
+      "tokens_completion": 13755,
+      "n_issues": 13,
+      "cached": true
+    },
+    {
+      "arxiv_id": "2104.08691",
+      "winner_agent_id": "agent_llama",
+      "claim_grounding_scores": [
+        {
+          "draft_label": "D1",
+          "agent_id": "agent_qwen",
+          "word_count": 696,
+          "n_factual_error": 0,
+          "n_missing_info": 8,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 8,
+          "issues_per_100_words": 8.0
+        },
+        {
+          "draft_label": "D2",
+          "agent_id": "agent_llama",
+          "word_count": 806,
+          "n_factual_error": 0,
+          "n_missing_info": 5,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 5,
+          "issues_per_100_words": 5.0
+        },
+        {
+          "draft_label": "D3",
+          "agent_id": "agent_deepseek",
+          "word_count": 821,
+          "n_factual_error": 0,
+          "n_missing_info": 10,
+          "n_unsupported_claim": 1,
+          "n_ambiguity": 1,
+          "n_total_issues": 12,
+          "issues_per_100_words": 10.0
+        }
+      ],
+      "tokens_prompt": 349079,
+      "tokens_completion": 18273,
+      "n_issues": 22,
+      "cached": true
+    },
+    {
+      "arxiv_id": "2106.04561",
+      "error": "PipelineError: PDF parsing produced zero paragraphs."
+    },
+    {
+      "arxiv_id": "2106.09685",
+      "winner_agent_id": "agent_llama",
+      "claim_grounding_scores": [
+        {
+          "draft_label": "D1",
+          "agent_id": "agent_qwen",
+          "word_count": 668,
+          "n_factual_error": 0,
+          "n_missing_info": 5,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 5,
+          "issues_per_100_words": 5.0
+        },
+        {
+          "draft_label": "D2",
+          "agent_id": "agent_llama",
+          "word_count": 581,
+          "n_factual_error": 0,
+          "n_missing_info": 4,
+          "n_unsupported_claim": 1,
+          "n_ambiguity": 0,
+          "n_total_issues": 5,
+          "issues_per_100_words": 4.0
+        },
+        {
+          "draft_label": "D3",
+          "agent_id": "agent_deepseek",
+          "word_count": 622,
+          "n_factual_error": 0,
+          "n_missing_info": 5,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 5,
+          "issues_per_100_words": 5.0
+        }
+      ],
+      "tokens_prompt": 170500,
+      "tokens_completion": 13347,
+      "n_issues": 15,
+      "cached": true
+    },
+    {
+      "arxiv_id": "2112.10752",
+      "winner_agent_id": "agent_llama",
+      "claim_grounding_scores": [
+        {
+          "draft_label": "D1",
+          "agent_id": "agent_qwen",
+          "word_count": 787,
+          "n_factual_error": 0,
+          "n_missing_info": 4,
+          "n_unsupported_claim": 1,
+          "n_ambiguity": 0,
+          "n_total_issues": 5,
+          "issues_per_100_words": 4.0
+        },
+        {
+          "draft_label": "D2",
+          "agent_id": "agent_llama",
+          "word_count": 570,
+          "n_factual_error": 0,
+          "n_missing_info": 3,
+          "n_unsupported_claim": 1,
+          "n_ambiguity": 1,
+          "n_total_issues": 5,
+          "issues_per_100_words": 3.0
+        },
+        {
+          "draft_label": "D3",
+          "agent_id": "agent_deepseek",
+          "word_count": 806,
+          "n_factual_error": 1,
+          "n_missing_info": 5,
+          "n_unsupported_claim": 1,
+          "n_ambiguity": 1,
+          "n_total_issues": 8,
+          "issues_per_100_words": 5.0
+        }
+      ],
+      "tokens_prompt": 343236,
+      "tokens_completion": 16457,
+      "n_issues": 21,
+      "cached": true
+    },
+    {
+      "arxiv_id": "2201.11903",
+      "winner_agent_id": "agent_qwen",
+      "claim_grounding_scores": [
+        {
+          "draft_label": "D1",
+          "agent_id": "agent_qwen",
+          "word_count": 650,
+          "n_factual_error": 0,
+          "n_missing_info": 5,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 5,
+          "issues_per_100_words": 5.0
+        },
+        {
+          "draft_label": "D2",
+          "agent_id": "agent_llama",
+          "word_count": 694,
+          "n_factual_error": 0,
+          "n_missing_info": 5,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 5,
+          "issues_per_100_words": 5.0
+        },
+        {
+          "draft_label": "D3",
+          "agent_id": "agent_deepseek",
+          "word_count": 641,
+          "n_factual_error": 0,
+          "n_missing_info": 6,
+          "n_unsupported_claim": 1,
+          "n_ambiguity": 1,
+          "n_total_issues": 8,
+          "issues_per_100_words": 6.0
+        }
+      ],
+      "tokens_prompt": 191727,
+      "tokens_completion": 15862,
+      "n_issues": 15,
+      "cached": true
+    },
+    {
+      "arxiv_id": "2203.02155",
+      "winner_agent_id": "agent_deepseek",
+      "winner_label": "D3",
+      "claim_grounding_scores": [
+        {
+          "draft_label": "D1",
+          "agent_id": "agent_qwen",
+          "word_count": 636,
+          "n_factual_error": 0,
+          "n_missing_info": 8,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 8,
+          "issues_per_100_words": 8.0
+        },
+        {
+          "draft_label": "D2",
+          "agent_id": "agent_llama",
+          "word_count": 595,
+          "n_factual_error": 0,
+          "n_missing_info": 8,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 8,
+          "issues_per_100_words": 8.0
+        },
+        {
+          "draft_label": "D3",
+          "agent_id": "agent_deepseek",
+          "word_count": 779,
+          "n_factual_error": 0,
+          "n_missing_info": 4,
+          "n_unsupported_claim": 1,
+          "n_ambiguity": 1,
+          "n_total_issues": 6,
+          "issues_per_100_words": 4.0
+        }
+      ],
+      "tokens_prompt": 197557,
+      "tokens_completion": 14297,
+      "n_issues": 14,
+      "wall_seconds": 646.001336833986,
+      "cached": false
+    },
+    {
+      "arxiv_id": "2203.15556",
+      "winner_agent_id": "agent_qwen",
+      "winner_label": "D1",
+      "claim_grounding_scores": [
+        {
+          "draft_label": "D1",
+          "agent_id": "agent_qwen",
+          "word_count": 717,
+          "n_factual_error": 0,
+          "n_missing_info": 8,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 8,
+          "issues_per_100_words": 8.0
+        },
+        {
+          "draft_label": "D2",
+          "agent_id": "agent_llama",
+          "word_count": 730,
+          "n_factual_error": 0,
+          "n_missing_info": 8,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 8,
+          "issues_per_100_words": 8.0
+        },
+        {
+          "draft_label": "D3",
+          "agent_id": "agent_deepseek",
+          "word_count": 854,
+          "n_factual_error": 0,
+          "n_missing_info": 8,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 8,
+          "issues_per_100_words": 8.0
+        }
+      ],
+      "tokens_prompt": 271087,
+      "tokens_completion": 17532,
+      "n_issues": 24,
+      "wall_seconds": 563.4054959589848,
+      "cached": false
+    },
+    {
+      "arxiv_id": "2204.02311",
+      "winner_agent_id": "agent_deepseek",
+      "winner_label": "D3",
+      "claim_grounding_scores": [
+        {
+          "draft_label": "D1",
+          "agent_id": "agent_qwen",
+          "word_count": 594,
+          "n_factual_error": 0,
+          "n_missing_info": 8,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 8,
+          "issues_per_100_words": 8.0
+        },
+        {
+          "draft_label": "D2",
+          "agent_id": "agent_llama",
+          "word_count": 711,
+          "n_factual_error": 0,
+          "n_missing_info": 8,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 8,
+          "issues_per_100_words": 8.0
+        },
+        {
+          "draft_label": "D3",
+          "agent_id": "agent_deepseek",
+          "word_count": 636,
+          "n_factual_error": 0,
+          "n_missing_info": 5,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 5,
+          "issues_per_100_words": 5.0
+        }
+      ],
+      "tokens_prompt": 258835,
+      "tokens_completion": 16094,
+      "n_issues": 21,
+      "wall_seconds": 650.4782948750071,
+      "cached": false
+    },
+    {
+      "arxiv_id": "2204.05862",
+      "winner_agent_id": "agent_llama",
+      "claim_grounding_scores": [
+        {
+          "draft_label": "D1",
+          "agent_id": "agent_qwen",
+          "word_count": 665,
+          "n_factual_error": 0,
+          "n_missing_info": 8,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 8,
+          "issues_per_100_words": 8.0
+        },
+        {
+          "draft_label": "D2",
+          "agent_id": "agent_llama",
+          "word_count": 795,
+          "n_factual_error": 0,
+          "n_missing_info": 6,
+          "n_unsupported_claim": 1,
+          "n_ambiguity": 1,
+          "n_total_issues": 8,
+          "issues_per_100_words": 6.0
+        },
+        {
+          "draft_label": "D3",
+          "agent_id": "agent_deepseek",
+          "word_count": 767,
+          "n_factual_error": 0,
+          "n_missing_info": 6,
+          "n_unsupported_claim": 1,
+          "n_ambiguity": 1,
+          "n_total_issues": 8,
+          "issues_per_100_words": 6.0
+        }
+      ],
+      "tokens_prompt": 214166,
+      "tokens_completion": 17634,
+      "n_issues": 26,
+      "cached": true
+    },
+    {
+      "arxiv_id": "2204.06125",
+      "winner_agent_id": "agent_llama",
+      "claim_grounding_scores": [
+        {
+          "draft_label": "D1",
+          "agent_id": "agent_qwen",
+          "word_count": 727,
+          "n_factual_error": 0,
+          "n_missing_info": 6,
+          "n_unsupported_claim": 1,
+          "n_ambiguity": 1,
+          "n_total_issues": 8,
+          "issues_per_100_words": 6.0
+        },
+        {
+          "draft_label": "D2",
+          "agent_id": "agent_llama",
+          "word_count": 458,
+          "n_factual_error": 0,
+          "n_missing_info": 4,
+          "n_unsupported_claim": 1,
+          "n_ambiguity": 1,
+          "n_total_issues": 6,
+          "issues_per_100_words": 4.0
+        },
+        {
+          "draft_label": "D3",
+          "agent_id": "agent_deepseek",
+          "word_count": 777,
+          "n_factual_error": 0,
+          "n_missing_info": 6,
+          "n_unsupported_claim": 1,
+          "n_ambiguity": 1,
+          "n_total_issues": 8,
+          "issues_per_100_words": 6.0
+        }
+      ],
+      "tokens_prompt": 90086,
+      "tokens_completion": 9223,
+      "n_issues": 6,
+      "cached": true
+    },
+    {
+      "arxiv_id": "2205.14135",
+      "winner_agent_id": "agent_llama",
+      "claim_grounding_scores": null,
+      "tokens_prompt": 234119,
+      "tokens_completion": 11789,
+      "n_issues": 18,
+      "cached": true
+    },
+    {
+      "arxiv_id": "2210.03629",
+      "winner_agent_id": "agent_qwen",
+      "claim_grounding_scores": null,
+      "tokens_prompt": 289076,
+      "tokens_completion": 8006,
+      "n_issues": 8,
+      "cached": true
+    },
+    {
+      "arxiv_id": "2304.02643",
+      "winner_agent_id": "agent_llama",
+      "claim_grounding_scores": [
+        {
+          "draft_label": "D1",
+          "agent_id": "agent_qwen",
+          "word_count": 691,
+          "n_factual_error": 0,
+          "n_missing_info": 4,
+          "n_unsupported_claim": 1,
+          "n_ambiguity": 1,
+          "n_total_issues": 6,
+          "issues_per_100_words": 4.0
+        },
+        {
+          "draft_label": "D2",
+          "agent_id": "agent_llama",
+          "word_count": 658,
+          "n_factual_error": 0,
+          "n_missing_info": 3,
+          "n_unsupported_claim": 1,
+          "n_ambiguity": 1,
+          "n_total_issues": 5,
+          "issues_per_100_words": 3.0
+        },
+        {
+          "draft_label": "D3",
+          "agent_id": "agent_deepseek",
+          "word_count": 736,
+          "n_factual_error": 0,
+          "n_missing_info": 5,
+          "n_unsupported_claim": 2,
+          "n_ambiguity": 1,
+          "n_total_issues": 8,
+          "issues_per_100_words": 5.0
+        }
+      ],
+      "tokens_prompt": 406915,
+      "tokens_completion": 15880,
+      "n_issues": 19,
+      "cached": true
+    },
+    {
+      "arxiv_id": "2305.10403",
+      "winner_agent_id": "agent_llama",
+      "winner_label": "D2",
+      "claim_grounding_scores": [
+        {
+          "draft_label": "D1",
+          "agent_id": "agent_qwen",
+          "word_count": 679,
+          "n_factual_error": 0,
+          "n_missing_info": 8,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 8,
+          "issues_per_100_words": 8.0
+        },
+        {
+          "draft_label": "D2",
+          "agent_id": "agent_llama",
+          "word_count": 504,
+          "n_factual_error": 0,
+          "n_missing_info": 6,
+          "n_unsupported_claim": 1,
+          "n_ambiguity": 1,
+          "n_total_issues": 8,
+          "issues_per_100_words": 6.0
+        },
+        {
+          "draft_label": "D3",
+          "agent_id": "agent_deepseek",
+          "word_count": 686,
+          "n_factual_error": 0,
+          "n_missing_info": 7,
+          "n_unsupported_claim": 1,
+          "n_ambiguity": 0,
+          "n_total_issues": 8,
+          "issues_per_100_words": 7.0
+        }
+      ],
+      "tokens_prompt": 270675,
+      "tokens_completion": 15236,
+      "n_issues": 21,
+      "wall_seconds": 449.46828391600866,
+      "cached": false
+    },
+    {
+      "arxiv_id": "2305.10601",
+      "winner_agent_id": "agent_qwen",
+      "claim_grounding_scores": [
+        {
+          "draft_label": "D1",
+          "agent_id": "agent_qwen",
+          "word_count": 805,
+          "n_factual_error": 0,
+          "n_missing_info": 6,
+          "n_unsupported_claim": 1,
+          "n_ambiguity": 1,
+          "n_total_issues": 8,
+          "issues_per_100_words": 6.0
+        },
+        {
+          "draft_label": "D2",
+          "agent_id": "agent_llama",
+          "word_count": 666,
+          "n_factual_error": 0,
+          "n_missing_info": 8,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 8,
+          "issues_per_100_words": 8.0
+        },
+        {
+          "draft_label": "D3",
+          "agent_id": "agent_deepseek",
+          "word_count": 674,
+          "n_factual_error": 0,
+          "n_missing_info": 8,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 8,
+          "issues_per_100_words": 8.0
+        }
+      ],
+      "tokens_prompt": 353655,
+      "tokens_completion": 17667,
+      "n_issues": 21,
+      "cached": true
+    },
+    {
+      "arxiv_id": "2305.14233",
+      "winner_agent_id": "agent_qwen",
+      "claim_grounding_scores": null,
+      "tokens_prompt": 288900,
+      "tokens_completion": 15012,
+      "n_issues": 24,
+      "cached": true
+    },
+    {
+      "arxiv_id": "2305.18290",
+      "winner_agent_id": "agent_llama",
+      "claim_grounding_scores": [
+        {
+          "draft_label": "D1",
+          "agent_id": "agent_qwen",
+          "word_count": 621,
+          "n_factual_error": 0,
+          "n_missing_info": 5,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 5,
+          "issues_per_100_words": 5.0
+        },
+        {
+          "draft_label": "D2",
+          "agent_id": "agent_llama",
+          "word_count": 675,
+          "n_factual_error": 0,
+          "n_missing_info": 4,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 4,
+          "issues_per_100_words": 4.0
+        },
+        {
+          "draft_label": "D3",
+          "agent_id": "agent_deepseek",
+          "word_count": 690,
+          "n_factual_error": 0,
+          "n_missing_info": 4,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 4,
+          "issues_per_100_words": 4.0
+        }
+      ],
+      "tokens_prompt": 97643,
+      "tokens_completion": 7824,
+      "n_issues": 0,
+      "cached": true
+    },
+    {
+      "arxiv_id": "2308.08155",
+      "winner_agent_id": "agent_llama",
+      "claim_grounding_scores": [
+        {
+          "draft_label": "D1",
+          "agent_id": "agent_qwen",
+          "word_count": 597,
+          "n_factual_error": 0,
+          "n_missing_info": 8,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 8,
+          "issues_per_100_words": 8.0
+        },
+        {
+          "draft_label": "D2",
+          "agent_id": "agent_llama",
+          "word_count": 820,
+          "n_factual_error": 0,
+          "n_missing_info": 4,
+          "n_unsupported_claim": 1,
+          "n_ambiguity": 1,
+          "n_total_issues": 6,
+          "issues_per_100_words": 4.0
+        },
+        {
+          "draft_label": "D3",
+          "agent_id": "agent_deepseek",
+          "word_count": 701,
+          "n_factual_error": 0,
+          "n_missing_info": 8,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 8,
+          "issues_per_100_words": 8.0
+        }
+      ],
+      "tokens_prompt": 232212,
+      "tokens_completion": 16702,
+      "n_issues": 19,
+      "cached": true
+    },
+    {
+      "arxiv_id": "2310.06825",
+      "winner_agent_id": "agent_qwen",
+      "claim_grounding_scores": [
+        {
+          "draft_label": "D1",
+          "agent_id": "agent_qwen",
+          "word_count": 622,
+          "n_factual_error": 0,
+          "n_missing_info": 5,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 5,
+          "issues_per_100_words": 5.0
+        },
+        {
+          "draft_label": "D2",
+          "agent_id": "agent_llama",
+          "word_count": 630,
+          "n_factual_error": 0,
+          "n_missing_info": 8,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 8,
+          "issues_per_100_words": 8.0
+        },
+        {
+          "draft_label": "D3",
+          "agent_id": "agent_deepseek",
+          "word_count": 726,
+          "n_factual_error": 0,
+          "n_missing_info": 6,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 6,
+          "issues_per_100_words": 6.0
+        }
+      ],
+      "tokens_prompt": 69768,
+      "tokens_completion": 9881,
+      "n_issues": 5,
+      "cached": true
+    },
+    {
+      "arxiv_id": "2402.17764",
+      "winner_agent_id": "agent_llama",
+      "winner_label": "D2",
+      "claim_grounding_scores": [
+        {
+          "draft_label": "D1",
+          "agent_id": "agent_qwen",
+          "word_count": 669,
+          "n_factual_error": 0,
+          "n_missing_info": 5,
+          "n_unsupported_claim": 0,
+          "n_ambiguity": 0,
+          "n_total_issues": 5,
+          "issues_per_100_words": 5.0
+        },
+        {
+          "draft_label": "D2",
+          "agent_id": "agent_llama",
+          "word_count": 662,
+          "n_factual_error": 0,
+          "n_missing_info": 4,
+          "n_unsupported_claim": 1,
+          "n_ambiguity": 1,
+          "n_total_issues": 6,
+          "issues_per_100_words": 4.0
+        },
+        {
+          "draft_label": "D3",
+          "agent_id": "agent_deepseek",
+          "word_count": 620,
+          "n_factual_error": 0,
+          "n_missing_info": 5,
+          "n_unsupported_claim": 1,
+          "n_ambiguity": 0,
+          "n_total_issues": 6,
+          "issues_per_100_words": 5.0
+        }
+      ],
+      "tokens_prompt": 74823,
+      "tokens_completion": 9697,
+      "n_issues": 6,
+      "wall_seconds": 223.14585937501397,
+      "cached": false
+    }
+  ]
+}
