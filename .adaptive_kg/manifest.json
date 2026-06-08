@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "generated_at": 1780688836.252977,
+  "root": "/Users/yijunsun/Documents/Git/AutoArxivSummarization",
+  "nodes": 7455,
+  "edges": 16621,
+  "files": {
+    "nodes": "nodes.jsonl",
+    "edges": "edges.jsonl",
+    "pending_updates": "pending_updates.jsonl",
+    "agent_protocol": "AGENT_PROTOCOL.md"
+  }
+}
